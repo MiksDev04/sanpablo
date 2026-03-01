@@ -1,3 +1,4 @@
+import { useData } from '../../contexts/DataContext';
 import {
   getTotalActiveBusinesses,
   getTotalTouristsMonth,
@@ -10,13 +11,14 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 export default function AdminDashboard() {
-  const activeBusinesses = getTotalActiveBusinesses();
-  const touristsMonth = getTotalTouristsMonth();
-  const touristsYear = getTotalTouristsYear();
-  const pendingReg = getPendingRegistrations();
-  const complianceRate = getSubmissionComplianceRate();
-  const topNationalities = getTopNationalities(5);
-  const trendData = getTouristTrendData(12);
+  const { guestRecords, businesses, monthlySubmissions, registrationRequests } = useData();
+  const activeBusinesses = getTotalActiveBusinesses(businesses);
+  const touristsMonth = getTotalTouristsMonth(guestRecords);
+  const touristsYear = getTotalTouristsYear(guestRecords);
+  const pendingReg = getPendingRegistrations(registrationRequests);
+  const complianceRate = getSubmissionComplianceRate(businesses, monthlySubmissions);
+  const topNationalities = getTopNationalities(guestRecords, 5);
+  const trendData = getTouristTrendData(guestRecords, 12);
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">

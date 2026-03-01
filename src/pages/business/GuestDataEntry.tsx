@@ -4,7 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Trash2, Search, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { dummyGuestRecords, nationalities } from '../../data/dummyData';
+import { useData } from '../../contexts/DataContext';
+import { nationalities } from '../../data/dummyData';
 import type { AgeGroup, Gender, TransportationMode, PurposeOfVisit, GuestRecord } from '../../types';
 
 function differenceInDays(dateLeft: Date, dateRight: Date): number {
@@ -63,9 +64,13 @@ const transportLabel: Record<string, string> = {
 };
 
 function GuestEntryForm({
+  businessId,
+  addGuestRecords,
   onSuccess,
   onCancel,
 }: {
+  businessId: string;
+  addGuestRecords: (records: Omit<import('../../types').GuestRecord, 'id' | 'createdAt'>[]) => void;
   onSuccess: () => void;
   onCancel: () => void;
 }) {
@@ -89,7 +94,19 @@ function GuestEntryForm({
     ? Math.max(0, differenceInDays(new Date(checkIn), new Date(checkOut)))
     : 0;
 
-  const onSubmit = (_data: FormData) => {
+  const onSubmit = (data: FormData) => {
+    const records = data.subgroups.map((g) => ({
+      businessId,
+      checkIn: data.checkIn,
+      checkOut: data.checkOut,
+      nationality: g.nationality,
+      gender: g.gender,
+      age: g.age,
+      transportationMode: data.transportationMode,
+      purpose: data.purpose,
+      numberOfGuests: g.count,
+    }));
+    addGuestRecords(records);
     onSuccess();
   };
 
@@ -201,6 +218,7 @@ function GuestEntryForm({
 
 export default function GuestDataEntry() {
   const { user } = useAuth();
+  const { guestRecords, addGuestRecords } = useData();
   const businessId = user?.business?.id ?? 'biz-1';
 
   const [showForm, setShowForm] = useState(false);
@@ -213,9 +231,9 @@ export default function GuestDataEntry() {
   });
 
   const records = useMemo(() => {
-    return dummyGuestRecords
-      .filter((r) => r.businessId === businessId)
-      .filter((r) => {
+    return guestRecords
+      .filter((r: GuestRecord) => r.businessId === businessId)
+      .filter((r: GuestRecord) => {
         if (filters.dateFrom && r.checkIn < filters.dateFrom) return false;
         if (filters.dateTo && r.checkOut > filters.dateTo) return false;
         if (filters.nationality && r.nationality !== filters.nationality) return false;
@@ -223,8 +241,8 @@ export default function GuestDataEntry() {
         if (filters.transport && r.transportationMode !== filters.transport) return false;
         return true;
       })
-      .sort((a, b) => new Date(b.checkIn).getTime() - new Date(a.checkIn).getTime());
-  }, [businessId, filters]);
+      .sort((a: GuestRecord, b: GuestRecord) => new Date(b.checkIn).getTime() - new Date(a.checkIn).getTime());
+  }, [businessId, filters, guestRecords]);
 
   const resetFilters = () => {
     setFilters({ dateFrom: '', dateTo: '', nationality: '', purpose: '', transport: '' });
@@ -245,6 +263,8 @@ export default function GuestDataEntry() {
 
       {showForm && (
         <GuestEntryForm
+          businessId={businessId}
+          addGuestRecords={addGuestRecords}
           onSuccess={() => setShowForm(false)}
           onCancel={() => setShowForm(false)}
         />

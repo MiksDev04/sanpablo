@@ -17,7 +17,7 @@ export default function BusinessLayout() {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-col w-64 bg-gov-blue text-white fixed h-full">
         <div className="p-6 border-b border-gov-gold/30">
-          <h1 className="text-lg font-bold">San Pablo City</h1>
+          <h1 className="text-lg font-bold text-white">San Pablo City</h1>
           <p className="text-xs text-gray-300 mt-0.5">Tourism Demographics</p>
         </div>
         <nav className="flex-1 p-4 space-y-1">

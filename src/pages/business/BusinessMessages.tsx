@@ -1,12 +1,13 @@
 import { useAuth } from '../../contexts/AuthContext';
-import { dummyMessages } from '../../data/dummyData';
+import { useData } from '../../contexts/DataContext';
 import { MessageSquare, Mail } from 'lucide-react';
 
 export default function BusinessMessages() {
   const { user } = useAuth();
   const userId = user?.id ?? 'user-2';
+  const { messages: allMessages } = useData();
 
-  const messages = dummyMessages
+  const messages = allMessages
     .filter((m) => m.receiverId === userId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 

@@ -1,14 +1,15 @@
 import { useAuth } from '../../contexts/AuthContext';
-import { dummyMonthlySubmissions } from '../../data/dummyData';
+import { useData } from '../../contexts/DataContext';
 import { Check, FileCheck } from 'lucide-react';
 
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export default function MonthlySubmission() {
   const { user } = useAuth();
+  const { monthlySubmissions, submitMonthlySubmission } = useData();
   const businessId = user?.business?.id ?? 'biz-1';
 
-  const submissions = dummyMonthlySubmissions
+  const submissions = monthlySubmissions
     .filter((s) => s.businessId === businessId)
     .sort((a, b) => (b.year - a.year) * 12 + (b.month - a.month));
 
@@ -80,6 +81,7 @@ export default function MonthlySubmission() {
         </p>
         <button
           type="button"
+          onClick={() => submitMonthlySubmission(businessId, previousMonth, previousYear)}
           className="flex items-center gap-2 px-4 py-2 bg-gov-blue text-white rounded-lg hover:bg-gov-blue/90 transition-colors"
         >
           <Check size={18} />

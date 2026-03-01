@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { dummyRegistrationRequests } from '../../data/dummyData';
+import { useData } from '../../contexts/DataContext';
 import { Check, X, FileText, Search } from 'lucide-react';
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
 
 export default function RegistrationApproval() {
+  const { registrationRequests, updateRegistrationRequest } = useData();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterStatus>('all');
 
-  const filtered = dummyRegistrationRequests.filter((r) => {
+  const filtered = registrationRequests.filter((r) => {
     const matchesSearch =
       r.businessName.toLowerCase().includes(search.toLowerCase()) ||
       r.ownerName.toLowerCase().includes(search.toLowerCase()) ||
@@ -79,12 +80,14 @@ export default function RegistrationApproval() {
                     <>
                       <button
                         type="button"
+                        onClick={() => updateRegistrationRequest(req.id, { status: 'approved' })}
                         className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                       >
                         <Check size={18} /> Approve
                       </button>
                       <button
                         type="button"
+                        onClick={() => updateRegistrationRequest(req.id, { status: 'rejected' })}
                         className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                       >
                         <X size={18} /> Reject

@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form';
-import { dummyGuestRecords, dummyBusinesses } from '../../data/dummyData';
+import { useData } from '../../contexts/DataContext';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { FileDown, Download, Printer } from 'lucide-react';
@@ -14,7 +14,6 @@ interface ReportFilters {
   accommodation: string;
 }
 
-const nationalities = ['All', ...new Set(dummyGuestRecords.map((r) => r.nationality))];
 const ageRanges = ['All', '1-9', '10-17', '18-25', '26-35', '36-45', '46-55', '56+'];
 const genders = ['All', 'Male', 'Female', 'LGBT+'];
 const transports = ['All', 'Private Car', 'Bus', 'Van', 'Motorcycle', 'Plane', 'Other'];
@@ -23,8 +22,8 @@ const transportLabelToMode: Record<string, string> = {
   'Private Car': 'private_car', Bus: 'bus', Van: 'van', Motorcycle: 'motorcycle', Plane: 'plane', Other: 'other',
 };
 
-function filterRecords(f: ReportFilters) {
-  return dummyGuestRecords.filter((r) => {
+function filterRecords(guestRecords: import('../../types').GuestRecord[], businesses: import('../../types').Business[], f: ReportFilters) {
+  return guestRecords.filter((r) => {
     if (f.month && f.month !== '') {
       const m = parseInt(f.month, 10);
       if (new Date(r.checkIn).getMonth() + 1 !== m) return false;
@@ -44,7 +43,7 @@ function filterRecords(f: ReportFilters) {
       if (r.transportationMode !== mode) return false;
     }
     if (f.accommodation && f.accommodation !== 'All') {
-      const biz = dummyBusinesses.find((b) => b.id === r.businessId);
+      const biz = businesses.find((b) => b.id === r.businessId);
       if (!biz || biz.businessName !== f.accommodation) return false;
     }
     return true;
@@ -69,7 +68,8 @@ export default function AdminReports() {
   });
 
   const filters = watch();
-  const records = filterRecords(filters);
+  const { guestRecords, businesses } = useData();
+  const records = filterRecords(guestRecords, businesses, filters);
   const totalGuests = records.reduce((s, r) => s + r.numberOfGuests, 0);
 
   const exportPDF = () => {
@@ -107,7 +107,8 @@ export default function AdminReports() {
     URL.revokeObjectURL(url);
   };
 
-  const accommodationOptions = ['All', ...dummyBusinesses.map((b) => b.businessName)];
+  const nationalities = ['All', ...new Set(guestRecords.map((r) => r.nationality))];
+  const accommodationOptions = ['All', ...businesses.map((b) => b.businessName)];
 
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto">

@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { dummyBusinesses } from '../../data/dummyData';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
 import { Send } from 'lucide-react';
 
 export default function AdminMessages() {
+  const { user } = useAuth();
+  const { businesses, addMessage } = useData();
   const [recipient, setRecipient] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -21,8 +24,20 @@ export default function AdminMessages() {
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate send - no backend
-    alert('Message sent (simulated).');
+    if (!user) return;
+    const receiverIds = recipient === 'all' ? businesses.map((b) => b.userId) : [recipient];
+    receiverIds.forEach((receiverId) => {
+      addMessage({
+        senderId: user.id,
+        receiverId,
+        subject,
+        message,
+        readStatus: false,
+      });
+    });
+    setRecipient('');
+    setSubject('');
+    setMessage('');
   };
 
   return (
@@ -39,8 +54,8 @@ export default function AdminMessages() {
           >
             <option value="">Select accommodation</option>
             <option value="all">All Accommodations (Announcement)</option>
-            {dummyBusinesses.map((b) => (
-              <option key={b.id} value={b.id}>{b.businessName}</option>
+            {businesses.map((b) => (
+              <option key={b.id} value={b.userId}>{b.businessName}</option>
             ))}
           </select>
         </div>

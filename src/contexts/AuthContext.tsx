@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import { dummyUsers } from '../data/dummyData';
+import { getUsers } from '../data/storage';
 import type { User } from '../types';
 
 interface AuthContextType {
@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const login = useCallback((email: string, _password: string): User | null => {
-    const found = dummyUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const found = getUsers().find(u => u.email.toLowerCase() === email.toLowerCase());
     if (found && found.status === 'approved') {
       setUser(found);
       localStorage.setItem('sanpablo_user', JSON.stringify(found));

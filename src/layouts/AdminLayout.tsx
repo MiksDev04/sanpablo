@@ -17,7 +17,7 @@ export default function AdminLayout() {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-col w-64 bg-gov-blue text-white fixed h-full">
         <div className="p-6 border-b border-gov-gold/30">
-          <h1 className="text-lg font-bold">Tourism Office</h1>
+          <h1 className="text-lg font-bold text-white">Tourism Office</h1>
           <p className="text-xs text-gray-300 mt-0.5">San Pablo City, Laguna</p>
         </div>
         <nav className="flex-1 p-4 space-y-1">

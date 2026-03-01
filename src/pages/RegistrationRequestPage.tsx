@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useData } from '../contexts/DataContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,14 +22,23 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function RegistrationRequestPage() {
+  const { addRegistrationRequest } = useData();
   const [submitted, setSubmitted] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = (_data: FormData) => {
-    // Simulate submission - no backend
+  const onSubmit = (data: FormData) => {
+    addRegistrationRequest({
+      businessName: data.businessName,
+      permitNumber: data.permitNumber,
+      ownerName: data.ownerName,
+      email: data.email,
+      contactNumber: data.contactNumber,
+      address: data.address,
+      status: 'pending',
+    });
     setSubmitted(true);
   };
 

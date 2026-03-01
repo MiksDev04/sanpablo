@@ -1,4 +1,5 @@
 import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
 import {
   PieChart,
   Pie,
@@ -26,15 +27,16 @@ const COLORS = ['#1e3a5f', '#0d6b54', '#c9a227', '#4db89a', '#80ccb7', '#1aa47d'
 
 export default function BusinessDashboard() {
   const { user } = useAuth();
+  const { guestRecords } = useData();
   const businessId = user?.business?.id ?? 'biz-1';
 
-  const totalThisMonth = getTotalGuestsThisMonth(businessId);
-  const totalThisYear = getTotalGuestsThisYear(businessId);
-  const nationalityData = getNationalityBreakdown(businessId);
-  const monthlyData = getMonthlyTouristCount(businessId, 2025);
-  const genderData = getGenderDistribution(businessId);
-  const avgStay = getAverageLengthOfStay(businessId);
-  const transportData = getTransportationModeData(businessId);
+  const totalThisMonth = getTotalGuestsThisMonth(guestRecords, businessId);
+  const totalThisYear = getTotalGuestsThisYear(guestRecords, businessId);
+  const nationalityData = getNationalityBreakdown(guestRecords, businessId);
+  const monthlyData = getMonthlyTouristCount(guestRecords, businessId, 2025);
+  const genderData = getGenderDistribution(guestRecords, businessId);
+  const avgStay = getAverageLengthOfStay(guestRecords, businessId);
+  const transportData = getTransportationModeData(guestRecords, businessId);
   const mostCommonTransport = transportData[0]?.name ?? 'N/A';
 
   return (
