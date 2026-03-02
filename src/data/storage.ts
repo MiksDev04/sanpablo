@@ -85,22 +85,9 @@ const seedBusinesses: Business[] = [
   },
 ];
 
-const seedGuestRecords: GuestRecord[] = [
-  { id: 'g1', businessId: 'biz-1', checkIn: '2025-01-15', checkOut: '2025-01-17', nationality: 'Philippines', gender: 'male', age: '26-35', transportationMode: 'private_car', purpose: 'leisure', numberOfGuests: 4, createdAt: '2025-01-15T08:00:00Z' },
-  { id: 'g2', businessId: 'biz-1', checkIn: '2025-01-18', checkOut: '2025-01-20', nationality: 'United States', gender: 'female', age: '18-25', transportationMode: 'plane', purpose: 'leisure', numberOfGuests: 2, createdAt: '2025-01-18T10:00:00Z' },
-  { id: 'g3', businessId: 'biz-1', checkIn: '2025-01-22', checkOut: '2025-01-25', nationality: 'Japan', gender: 'male', age: '36-45', transportationMode: 'bus', purpose: 'business', numberOfGuests: 1, createdAt: '2025-01-22T14:00:00Z' },
-  { id: 'g4', businessId: 'biz-1', checkIn: '2025-02-01', checkOut: '2025-02-03', nationality: 'Philippines', gender: 'female', age: '18-25', transportationMode: 'van', purpose: 'event', numberOfGuests: 6, createdAt: '2025-02-01T09:00:00Z' },
-  { id: 'g5', businessId: 'biz-1', checkIn: '2025-02-05', checkOut: '2025-02-08', nationality: 'South Korea', gender: 'female', age: '26-35', transportationMode: 'plane', purpose: 'leisure', numberOfGuests: 3, createdAt: '2025-02-05T11:00:00Z' },
-  { id: 'g6', businessId: 'biz-2', checkIn: '2025-01-10', checkOut: '2025-01-12', nationality: 'Philippines', gender: 'male', age: '46-55', transportationMode: 'motorcycle', purpose: 'leisure', numberOfGuests: 2, createdAt: '2025-01-10T07:00:00Z' },
-  { id: 'g7', businessId: 'biz-2', checkIn: '2025-01-20', checkOut: '2025-01-23', nationality: 'Australia', gender: 'male', age: '36-45', transportationMode: 'private_car', purpose: 'leisure', numberOfGuests: 4, createdAt: '2025-01-20T16:00:00Z' },
-];
+const seedGuestRecords: GuestRecord[] = [];
 
-const seedMonthlySubmissions: MonthlySubmission[] = [
-  { id: 'ms1', businessId: 'biz-1', month: 1, year: 2025, status: 'submitted', submittedAt: '2025-02-01T23:59:00Z' },
-  { id: 'ms2', businessId: 'biz-1', month: 2, year: 2025, status: 'not_submitted' },
-  { id: 'ms3', businessId: 'biz-2', month: 1, year: 2025, status: 'submitted', submittedAt: '2025-02-01T22:00:00Z' },
-  { id: 'ms4', businessId: 'biz-2', month: 2, year: 2025, status: 'not_submitted' },
-];
+const seedMonthlySubmissions: MonthlySubmission[] = [];
 
 const seedRegistrationRequests: RegistrationRequest[] = [
   {
@@ -249,4 +236,9 @@ export function submitMonthlySubmission(businessId: string, month: number, year:
   const next = idx >= 0 ? [...existing] : [...existing, updated];
   if (idx >= 0) next[idx] = updated;
   save(STORAGE_KEYS.monthlySubmissions, next);
+}
+
+export function clearGuestRecordsAndMonthlySubmissions(): void {
+  save(STORAGE_KEYS.guestRecords, []);
+  save(STORAGE_KEYS.monthlySubmissions, []);
 }

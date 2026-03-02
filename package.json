@@ -9,17 +9,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-router-dom": "^7.0.0",
-    "react-hook-form": "^7.54.0",
-    "recharts": "^2.15.0",
-    "zod": "^3.24.0",
     "@hookform/resolvers": "^3.9.0",
+    "date-fns": "^4.1.0",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.3",
-    "date-fns": "^4.1.0",
-    "lucide-react": "^0.460.0"
+    "lucide-react": "^0.460.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.54.0",
+    "react-router-dom": "^7.0.0",
+    "recharts": "^2.15.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

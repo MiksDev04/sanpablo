@@ -11,6 +11,7 @@ import {
   updateRegistrationRequest as storageUpdateRegistrationRequest,
   addMessage as storageAddMessage,
   submitMonthlySubmission as storageSubmitMonthlySubmission,
+  clearGuestRecordsAndMonthlySubmissions as storageClearGuestRecordsAndMonthlySubmissions,
 } from '../data/storage';
 import type {
   User,
@@ -34,6 +35,7 @@ interface DataContextType {
   updateRegistrationRequest: (id: string, updates: Partial<RegistrationRequest>) => void;
   addMessage: (msg: Omit<Message, 'id' | 'createdAt'>) => void;
   submitMonthlySubmission: (businessId: string, month: number, year: number) => void;
+  resetGuestRecordsAndReports: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -84,6 +86,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     refresh();
   }, [refresh]);
 
+  const resetGuestRecordsAndReports = useCallback(() => {
+    storageClearGuestRecordsAndMonthlySubmissions();
+    refresh();
+  }, [refresh]);
+
   return (
     <DataContext.Provider
       value={{
@@ -99,6 +106,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         updateRegistrationRequest,
         addMessage,
         submitMonthlySubmission,
+        resetGuestRecordsAndReports,
       }}
     >
       {children}

@@ -12,8 +12,8 @@ import RegistrationRequestPage from './pages/RegistrationRequestPage';
 // Business pages
 import BusinessDashboard from './pages/business/BusinessDashboard';
 import GuestDataEntry from './pages/business/GuestDataEntry.tsx';
-import MonthlySubmission from './pages/business/MonthlySubmission.tsx';
 import BusinessMessages from './pages/business/BusinessMessages';
+import BusinessReports from './pages/business/BusinessReports';
 
 // Admin pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -41,7 +41,7 @@ export default function App() {
       }>
         <Route index element={<BusinessDashboard />} />
         <Route path="guest-entry" element={<GuestDataEntry />} />
-        <Route path="submission" element={<MonthlySubmission />} />
+        <Route path="reports" element={<BusinessReports />} />
         <Route path="messages" element={<BusinessMessages />} />
       </Route>
 

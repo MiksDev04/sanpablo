@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, Search, X } from 'lucide-react';
+import { Plus, Trash2, Search, X, Eye } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { nationalities } from '../../data/dummyData';
@@ -222,6 +222,7 @@ export default function GuestDataEntry() {
   const businessId = user?.business?.id ?? 'biz-1';
 
   const [showForm, setShowForm] = useState(false);
+  const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
@@ -230,19 +231,51 @@ export default function GuestDataEntry() {
     transport: '',
   });
 
-  const records = useMemo(() => {
-    return guestRecords
-      .filter((r: GuestRecord) => r.businessId === businessId)
-      .filter((r: GuestRecord) => {
-        if (filters.dateFrom && r.checkIn < filters.dateFrom) return false;
-        if (filters.dateTo && r.checkOut > filters.dateTo) return false;
-        if (filters.nationality && r.nationality !== filters.nationality) return false;
-        if (filters.purpose && r.purpose !== filters.purpose) return false;
-        if (filters.transport && r.transportationMode !== filters.transport) return false;
-        return true;
-      })
-      .sort((a: GuestRecord, b: GuestRecord) => new Date(b.checkIn).getTime() - new Date(a.checkIn).getTime());
+  const groups = useMemo(() => {
+    const businessRecords = guestRecords.filter((r: GuestRecord) => r.businessId === businessId);
+    const map = new Map<string, GuestRecord[]>();
+
+    businessRecords.forEach((r) => {
+      const key = r.createdAt;
+      const bucket = map.get(key);
+      if (bucket) {
+        bucket.push(r);
+      } else {
+        map.set(key, [r]);
+      }
+    });
+
+    let list = Array.from(map.entries()).map(([key, items]) => {
+      const first = items[0];
+      const totalGuests = items.reduce((s, g) => s + g.numberOfGuests, 0);
+      return {
+        key,
+        checkIn: first.checkIn,
+        checkOut: first.checkOut,
+        transportationMode: first.transportationMode,
+        purpose: first.purpose,
+        totalGuests,
+        items,
+      };
+    });
+
+    list = list.filter((g) => {
+      if (filters.dateFrom && g.checkIn < filters.dateFrom) return false;
+      if (filters.dateTo && g.checkOut > filters.dateTo) return false;
+      if (filters.nationality && !g.items.some((r) => r.nationality === filters.nationality)) return false;
+      if (filters.purpose && g.purpose !== filters.purpose) return false;
+      if (filters.transport && g.transportationMode !== filters.transport) return false;
+      return true;
+    });
+
+    list.sort((a, b) => new Date(b.checkIn).getTime() - new Date(a.checkIn).getTime());
+    return list;
   }, [businessId, filters, guestRecords]);
+
+  const selectedGroup = useMemo(
+    () => groups.find((g) => g.key === selectedGroupKey) ?? null,
+    [groups, selectedGroupKey],
+  );
 
   const resetFilters = () => {
     setFilters({ dateFrom: '', dateTo: '', nationality: '', purpose: '', transport: '' });
@@ -352,44 +385,136 @@ export default function GuestDataEntry() {
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Check-in</th>
                 <th className="px-4 py-3 text-left font-medium">Check-out</th>
-                <th className="px-4 py-3 text-left font-medium">Nationality</th>
-                <th className="px-4 py-3 text-left font-medium">Gender</th>
-                <th className="px-4 py-3 text-left font-medium">Age</th>
                 <th className="px-4 py-3 text-left font-medium">Transport</th>
                 <th className="px-4 py-3 text-left font-medium">Purpose</th>
                 <th className="px-4 py-3 text-right font-medium">Guests</th>
+                <th className="px-4 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {records.length === 0 ? (
+              {groups.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
                     No guest records found. Click &quot;Create New Guest Entry&quot; to add one.
                   </td>
                 </tr>
               ) : (
-                records.map((r: GuestRecord) => (
-                  <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-3">{r.checkIn}</td>
-                    <td className="px-4 py-3">{r.checkOut}</td>
-                    <td className="px-4 py-3">{r.nationality}</td>
-                    <td className="px-4 py-3 capitalize">{r.gender}</td>
-                    <td className="px-4 py-3">{r.age}</td>
-                    <td className="px-4 py-3">{transportLabel[r.transportationMode] ?? r.transportationMode}</td>
-                    <td className="px-4 py-3 capitalize">{r.purpose}</td>
-                    <td className="px-4 py-3 text-right font-medium">{r.numberOfGuests}</td>
+                groups.map((g) => (
+                  <tr key={g.key} className="border-t border-gray-100 hover:bg-gray-50">
+                    <td className="px-4 py-3">{g.checkIn}</td>
+                    <td className="px-4 py-3">{g.checkOut}</td>
+                    <td className="px-4 py-3">
+                      {transportLabel[g.transportationMode] ?? g.transportationMode}
+                    </td>
+                    <td className="px-4 py-3 capitalize">{g.purpose}</td>
+                    <td className="px-4 py-3 text-right font-medium">{g.totalGuests}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedGroupKey(g.key)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
+                        <Eye size={14} />
+                        View
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
-        {records.length > 0 && (
+        {groups.length > 0 && (
           <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
-            Showing {records.length} record{records.length !== 1 ? 's' : ''}
+            Showing {groups.length} record{groups.length !== 1 ? 's' : ''}
           </div>
         )}
       </div>
+
+      {selectedGroup && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+              <div>
+                <h2 className="text-lg font-semibold text-gov-blue">Guest Entry Details</h2>
+                <p className="text-xs text-gray-500">
+                  {selectedGroup.checkIn} – {selectedGroup.checkOut}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedGroupKey(null)}
+                className="p-1.5 text-gray-500 hover:text-gray-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-6 py-4 text-sm text-gray-700 space-y-4">
+              <div>
+                <p>
+                  <span className="font-medium text-gov-blue">Mode of Transportation:</span>{' '}
+                  {transportLabel[selectedGroup.transportationMode] ?? selectedGroup.transportationMode}
+                </p>
+                <p>
+                  <span className="font-medium text-gov-blue">Purpose of Visit:</span>{' '}
+                  <span className="capitalize">{selectedGroup.purpose}</span>
+                </p>
+                <p>
+                  <span className="font-medium text-gov-blue">Total Guests:</span>{' '}
+                  {selectedGroup.totalGuests}
+                </p>
+                <p>
+                  <span className="font-medium text-gov-blue">Length of Stay:</span>{' '}
+                  {Math.max(
+                    0,
+                    differenceInDays(
+                      new Date(selectedGroup.checkIn),
+                      new Date(selectedGroup.checkOut),
+                    ),
+                  )}{' '}
+                  night(s)
+                </p>
+              </div>
+
+              <div>
+                <p className="font-semibold text-gov-blue mb-2">Guest Breakdown</p>
+                <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium text-gray-600">Nationality</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-600">Gender</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-600">Age Group</th>
+                        <th className="px-3 py-2 text-right font-medium text-gray-600">Guests</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedGroup.items.map((r) => (
+                        <tr key={r.id} className="border-t border-gray-100">
+                          <td className="px-3 py-2">{r.nationality}</td>
+                          <td className="px-3 py-2 capitalize">{r.gender}</td>
+                          <td className="px-3 py-2">{r.age}</td>
+                          <td className="px-3 py-2 text-right">{r.numberOfGuests}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedGroupKey(null)}
+                  className="px-4 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
