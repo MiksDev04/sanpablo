@@ -63,7 +63,7 @@ export default function RegistrationRequestPage() {
     <div className="min-h-screen flex flex-col lg:flex-row">
       <div className="hidden lg:flex flex-1 items-center justify-center p-12 bg-gradient-to-br from-gov-blue to-primary-700">
         <div className="text-white max-w-md">
-          <h1 className="text-2xl font-bold mb-4">Register Your Accommodation Business</h1>
+          <h1 className="text-2xl font-bold mb-4 text-blue-50">Register Your Accommodation Business</h1>
           <p>Hotels, resorts, inns, and lodging establishments in San Pablo City can register to participate in the tourist demographic data collection program.</p>
         </div>
       </div>

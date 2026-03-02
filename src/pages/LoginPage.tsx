@@ -30,7 +30,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col lg:flex-row">
       <div className="flex-1 flex items-center justify-center p-6 bg-gradient-to-br from-gov-blue to-primary-700">
         <div className="text-white text-center max-w-md">
-          <h1 className="text-3xl font-bold mb-2">San Pablo City, Laguna</h1>
+          <h1 className="text-3xl font-bold mb-2 text-blue-50">San Pablo City, Laguna</h1>
           <p className="text-lg text-blue-100">SA Mobile-based App Demographic Study and Data Gathering for Tourists</p>
           <p className="text-sm text-blue-200 mt-4">Collecting and analyzing tourist demographics from accommodation establishments</p>
         </div>
