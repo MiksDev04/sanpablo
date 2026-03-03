@@ -37,9 +37,11 @@ function differenceInDays(dateLeft: Date, dateRight: Date): number {
 
 export default function BusinessReports() {
   const { user } = useAuth();
-  const { guestRecords, monthlySubmissions, submitMonthlySubmission, resetGuestRecordsAndReports } = useData();
+  const { guestRecords, monthlySubmissions, submitMonthlySubmission, resetGuestRecordsAndReports, businesses } = useData();
   const business = user?.business;
   const businessId = business?.id ?? 'biz-1';
+  // Always read the live record from DataContext so totalRooms reflects latest profile saves
+  const liveBusiness = businesses.find((b) => b.id === businessId) ?? business;
 
   const businessRecords = guestRecords.filter((r) => r.businessId === businessId);
 
@@ -120,26 +122,57 @@ export default function BusinessReports() {
     });
     const ageData = Array.from(ageBracketMap.entries()).map(([name, value]) => ({ name, value }));
 
-    const bookingChannelData = [
-      { name: 'Walk-in', value: 0 },
-      { name: 'Online Booking Platforms', value: 0 },
-      { name: 'Travel Agency', value: 0 },
-      { name: 'Direct Website Booking', value: 0 },
-    ];
+    const transportationMap = new Map<string, number>();
+    records.forEach((r) => {
+      const label =
+        r.transportationMode === 'private_car' ? 'Private Car'
+        : r.transportationMode === 'bus' ? 'Bus'
+        : r.transportationMode === 'van' ? 'Van'
+        : r.transportationMode === 'motorcycle' ? 'Motorcycle'
+        : r.transportationMode === 'plane' ? 'Plane'
+        : 'Other';
+      transportationMap.set(label, (transportationMap.get(label) || 0) + r.numberOfGuests);
+    });
+    const transportationData = Array.from(transportationMap.entries()).map(([name, value]) => ({ name, value }));
 
-    const guestClassificationData = [
-      { name: 'First-time Visitors', value: 0 },
-      { name: 'Returning Guests', value: 0 },
-    ];
+    // Build unique entry map (one entry per createdAt group) to get roomsRented per stay
+    // Fall back to 1 when roomsRented is missing/zero (e.g. records created before the field existed)
+    const entryMap = new Map<string, { roomsRented: number; checkIn: string; checkOut: string }>();
+    records.forEach((r) => {
+      if (!entryMap.has(r.createdAt)) {
+        entryMap.set(r.createdAt, {
+          roomsRented: r.roomsRented > 0 ? r.roomsRented : 1,
+          checkIn: r.checkIn,
+          checkOut: r.checkOut,
+        });
+      }
+    });
 
-    const spendingRangeData = [
-      { name: 'Below ₱3,000', value: 0 },
-      { name: '₱3,000 – ₱7,000', value: 0 },
-      { name: '₱7,001 – ₱15,000', value: 0 },
-      { name: 'Above ₱15,000', value: 0 },
-    ];
-
-    const averageOccupancyRate = 0;
+    // For each calendar day in the reporting month, count rooms occupied
+    const daysInMonth = new Date(year, month, 0).getDate();
+    let totalRoomDays = 0;
+    let activeDays = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const dateStr = `${year}-${pad(month)}-${pad(d)}`;
+      let roomsToday = 0;
+      entryMap.forEach(({ roomsRented, checkIn, checkOut }) => {
+        if (checkIn <= dateStr && dateStr < checkOut) {
+          roomsToday += roomsRented;
+        }
+      });
+      if (roomsToday > 0) {
+        totalRoomDays += roomsToday;
+        activeDays += 1;
+      }
+    }
+    // Occupancy rate = avg rooms occupied (on active days only) ÷ total rooms × 100
+    // Falls back to 0 if no bookings or totalRooms not set
+    const capacity = (liveBusiness?.totalRooms ?? 0) > 0 ? liveBusiness!.totalRooms! : 0;
+    const avgRoomsOnActiveDays = activeDays > 0 ? totalRoomDays / activeDays : 0;
+    const averageOccupancyRate = capacity > 0 && activeDays > 0
+      ? (avgRoomsOnActiveDays / capacity) * 100
+      : 0;
 
     return {
       records,
@@ -150,9 +183,7 @@ export default function BusinessReports() {
       nationalityData,
       purposeData,
       ageData,
-      bookingChannelData,
-      guestClassificationData,
-      spendingRangeData,
+      transportationData,
       averageOccupancyRate,
     };
   };
@@ -223,38 +254,12 @@ export default function BusinessReports() {
 
     let afterPurposeY = (doc as any).lastAutoTable.finalY + 10;
 
-    doc.text('5. Booking Channel', 14, afterPurposeY);
+    doc.text('5. Mode of Transportation', 14, afterPurposeY);
     afterPurposeY += 4;
     autoTable(doc, {
       startY: afterPurposeY,
-      head: [['Booking Channel', 'Guests']],
-      body: data.bookingChannelData.map((b) => [b.name, b.value.toString()]),
-      styles: { fontSize: 9 },
-      theme: 'grid',
-      headStyles: { fillColor: [30, 58, 95] },
-    });
-
-    let afterBookingY = (doc as any).lastAutoTable.finalY + 8;
-
-    doc.text('6. Guest Classification', 14, afterBookingY);
-    afterBookingY += 4;
-    autoTable(doc, {
-      startY: afterBookingY,
-      head: [['Classification', 'Guests']],
-      body: data.guestClassificationData.map((g) => [g.name, g.value.toString()]),
-      styles: { fontSize: 9 },
-      theme: 'grid',
-      headStyles: { fillColor: [30, 58, 95] },
-    });
-
-    let afterGuestClassY = (doc as any).lastAutoTable.finalY + 8;
-
-    doc.text('7. Estimated Tourist Spending Range (Optional Data)', 14, afterGuestClassY);
-    afterGuestClassY += 4;
-    autoTable(doc, {
-      startY: afterGuestClassY,
-      head: [['Spending Range', 'Guests']],
-      body: data.spendingRangeData.map((s) => [s.name, s.value.toString()]),
+      head: [['Transportation Mode', 'Guests']],
+      body: data.transportationData.map((t) => [t.name, t.value.toString()]),
       styles: { fontSize: 9 },
       theme: 'grid',
       headStyles: { fillColor: [30, 58, 95] },
@@ -297,14 +302,8 @@ export default function BusinessReports() {
     data.purposeData.forEach((p) => {
       lines.push(`Purpose,${p.name},${p.value}`);
     });
-    data.bookingChannelData.forEach((b) => {
-      lines.push(`Booking Channel,${b.name},${b.value}`);
-    });
-    data.guestClassificationData.forEach((g) => {
-      lines.push(`Guest Classification,${g.name},${g.value}`);
-    });
-    data.spendingRangeData.forEach((s) => {
-      lines.push(`Spending Range,${s.name},${s.value}`);
+    data.transportationData.forEach((t) => {
+      lines.push(`Transportation Mode,${t.name},${t.value}`);
     });
 
     const csv = lines.join('\n');
@@ -331,9 +330,7 @@ export default function BusinessReports() {
     data.ageData.forEach((a) => rows.push(['Age Group', a.name, a.value]));
     data.nationalityData.forEach((n) => rows.push(['Nationality', n.name, n.value]));
     data.purposeData.forEach((p) => rows.push(['Purpose', p.name, p.value]));
-    data.bookingChannelData.forEach((b) => rows.push(['Booking Channel', b.name, b.value]));
-    data.guestClassificationData.forEach((g) => rows.push(['Guest Classification', g.name, g.value]));
-    data.spendingRangeData.forEach((s) => rows.push(['Spending Range', s.name, s.value]));
+    data.transportationData.forEach((t) => rows.push(['Transportation Mode', t.name, t.value]));
 
     const worksheet = XLSX.utils.aoa_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
@@ -553,7 +550,11 @@ export default function BusinessReports() {
                       <p>Total Guests Checked-in: {data.totalGuests}</p>
                       <p>Total Guest Nights: {data.totalGuestNights}</p>
                       <p>Average Length of Stay: {data.averageLengthOfStay.toFixed(1)} nights</p>
-                      <p>Average Occupancy Rate: {data.averageOccupancyRate.toFixed(1)}%</p>
+                      <p>Average Occupancy Rate: {data.averageOccupancyRate.toFixed(1)}%
+                        {!(liveBusiness?.totalRooms ?? 0) && (
+                          <span className="ml-2 text-xs text-amber-600">(Set Total Rooms in Profile to calculate)</span>
+                        )}
+                      </p>
                     </div>
 
                     <div>
@@ -615,44 +616,14 @@ export default function BusinessReports() {
                     </div>
 
                     <div>
-                      <p className="font-semibold text-gov-blue mb-1">5. Booking Channel</p>
-                      {data.bookingChannelData.length === 0 ? (
+                      <p className="font-semibold text-gov-blue mb-1">5. Mode of Transportation</p>
+                      {data.transportationData.length === 0 ? (
                         <p className="text-xs text-gray-500">No data for this month.</p>
                       ) : (
                         <ul className="list-disc list-inside">
-                          {data.bookingChannelData.map((b) => (
-                            <li key={b.name}>
-                              {b.name}: {b.value}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-
-                    <div>
-                      <p className="font-semibold text-gov-blue mb-1">6. Guest Classification</p>
-                      {data.guestClassificationData.length === 0 ? (
-                        <p className="text-xs text-gray-500">No data for this month.</p>
-                      ) : (
-                        <ul className="list-disc list-inside">
-                          {data.guestClassificationData.map((g) => (
-                            <li key={g.name}>
-                              {g.name}: {g.value}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-
-                    <div>
-                      <p className="font-semibold text-gov-blue mb-1">7. Estimated Tourist Spending Range (Optional Data)</p>
-                      {data.spendingRangeData.length === 0 ? (
-                        <p className="text-xs text-gray-500">No data for this month.</p>
-                      ) : (
-                        <ul className="list-disc list-inside">
-                          {data.spendingRangeData.map((s) => (
-                            <li key={s.name}>
-                              {s.name}: {s.value}
+                          {data.transportationData.map((t) => (
+                            <li key={t.name}>
+                              {t.name}: {t.value}
                             </li>
                           ))}
                         </ul>

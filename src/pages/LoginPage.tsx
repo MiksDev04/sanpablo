@@ -98,6 +98,32 @@ export default function LoginPage() {
               Request Registration
             </Link>
           </p>
+
+          <div className="mt-6 border-t border-gray-200 pt-5">
+            <p className="text-xs text-gray-500 text-center mb-3">Quick Sign In — Demo Accounts</p>
+            <div className="flex flex-col gap-2">
+              {[
+                { label: 'Admin — Tourism Office', email: 'admin@sanpablo.gov.ph', role: 'admin' as const },
+                { label: 'Business — Palm Spring Resort & Hotel', email: 'resort@palmspring.com', role: 'business' as const },
+                { label: 'Business — Seven Lakes Hotel', email: 'hotel@sevenlakes.com', role: 'business' as const },
+              ].map((account) => (
+                <button
+                  key={account.email}
+                  type="button"
+                  onClick={() => {
+                    setEmail(account.email);
+                    setPassword('password');
+                    setRole(account.role);
+                    setError('');
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <span className="font-medium text-gov-blue">{account.label}</span>
+                  <span className="block text-xs text-gray-400">{account.email}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

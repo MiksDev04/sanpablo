@@ -238,6 +238,36 @@ export function submitMonthlySubmission(businessId: string, month: number, year:
   save(STORAGE_KEYS.monthlySubmissions, next);
 }
 
+export function updateBusiness(businessId: string, updates: Partial<import('../types').Business>): void {
+  // Update businesses list
+  const businesses = load<import('../types').Business[]>(STORAGE_KEYS.businesses, []);
+  const bIdx = businesses.findIndex((b) => b.id === businessId);
+  if (bIdx !== -1) {
+    businesses[bIdx] = { ...businesses[bIdx], ...updates };
+    save(STORAGE_KEYS.businesses, businesses);
+  }
+  // Update embedded business in users list
+  const users = load<import('../types').User[]>(STORAGE_KEYS.users, []);
+  const uIdx = users.findIndex((u) => u.business?.id === businessId);
+  if (uIdx !== -1) {
+    users[uIdx] = { ...users[uIdx], business: { ...users[uIdx].business!, ...updates } };
+    save(STORAGE_KEYS.users, users);
+  }
+  // Patch the active session in localStorage so AuthContext stays in sync
+  const stored = localStorage.getItem('sanpablo_user');
+  if (stored) {
+    try {
+      const sessionUser = JSON.parse(stored);
+      if (sessionUser.business?.id === businessId) {
+        sessionUser.business = { ...sessionUser.business, ...updates };
+        localStorage.setItem('sanpablo_user', JSON.stringify(sessionUser));
+      }
+    } catch {
+      // ignore
+    }
+  }
+}
+
 export function clearGuestRecordsAndMonthlySubmissions(): void {
   save(STORAGE_KEYS.guestRecords, []);
   save(STORAGE_KEYS.monthlySubmissions, []);

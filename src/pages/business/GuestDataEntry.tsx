@@ -26,6 +26,7 @@ const schema = z.object({
   subgroups: z.array(subgroupSchema).min(1, 'Add at least one guest subgroup'),
   transportationMode: z.enum(['private_car', 'bus', 'van', 'motorcycle', 'plane', 'other']),
   purpose: z.enum(['leisure', 'business', 'event', 'others']),
+  roomsRented: z.number().min(1, 'At least 1 room required'),
 }).refine((data) => {
   const checkIn = new Date(data.checkIn);
   const checkOut = new Date(data.checkOut);
@@ -82,6 +83,7 @@ function GuestEntryForm({
       subgroups: [{ nationality: 'Philippines', gender: 'male', age: '18-25', count: 1 }],
       transportationMode: 'private_car',
       purpose: 'leisure',
+      roomsRented: 1,
     },
   });
 
@@ -105,25 +107,30 @@ function GuestEntryForm({
       transportationMode: data.transportationMode,
       purpose: data.purpose,
       numberOfGuests: g.count,
+      roomsRented: data.roomsRented,
     }));
     addGuestRecords(records);
     onSuccess();
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-semibold text-gov-blue">New Guest Entry</h2>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
-        >
-          <X size={20} />
-        </button>
-      </div>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
+      <div className="bg-white w-full sm:max-w-2xl sm:rounded-xl rounded-t-2xl shadow-2xl max-h-[92dvh] flex flex-col">
+        {/* Modal header */}
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 shrink-0">
+          <h2 className="text-lg font-semibold text-gov-blue">New Guest Entry</h2>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1 px-6 py-5">
+          <form id="guest-entry-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-2 gap-4 items-start">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date of Check-in *</label>
             <input type="date" {...register('checkIn')} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" />
@@ -144,37 +151,39 @@ function GuestEntryForm({
             <p className="text-sm text-gray-500">Total: <strong>{totalGuests}</strong></p>
           </div>
           {fields.map((field, index) => (
-            <div key={field.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4 flex flex-col sm:flex-row sm:items-end gap-4 flex-wrap">
-              <div className="flex-1 min-w-[120px]">
-                <label className="block text-xs text-gray-500 mb-1">Nationality</label>
-                <select {...register(`subgroups.${index}.nationality`)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <div key={field.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-3 flex flex-wrap gap-3 items-end">
+              <div className="flex-1 min-w-[160px]">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Nationality</label>
+                <select {...register(`subgroups.${index}.nationality`)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
                   {nationalities.map((n) => (
                     <option key={n} value={n}>{n}</option>
                   ))}
                 </select>
+                {errors.subgroups?.[index]?.nationality && <p className="text-red-500 text-xs mt-1">{errors.subgroups[index]?.nationality?.message}</p>}
               </div>
-              <div className="w-24 min-w-[80px]">
-                <label className="block text-xs text-gray-500 mb-1">Gender</label>
-                <select {...register(`subgroups.${index}.gender`)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+              <div className="min-w-[120px]">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Gender</label>
+                <select {...register(`subgroups.${index}.gender`)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
                   {genderOptions.map((g) => (
                     <option key={g} value={g}>{g.charAt(0).toUpperCase() + g.slice(1)}</option>
                   ))}
                 </select>
               </div>
-              <div className="w-28 min-w-[90px]">
-                <label className="block text-xs text-gray-500 mb-1">Age Group</label>
-                <select {...register(`subgroups.${index}.age`)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+              <div className="min-w-[120px]">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Age Group</label>
+                <select {...register(`subgroups.${index}.age`)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
                   {ageOptions.map((a) => (
                     <option key={a} value={a}>{a}</option>
                   ))}
                 </select>
               </div>
-              <div className="w-20 min-w-[60px]">
-                <label className="block text-xs text-gray-500 mb-1">Count</label>
-                <input type="number" min={1} {...register(`subgroups.${index}.count`, { valueAsNumber: true })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              <div className="w-24">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Count</label>
+                <input type="number" min={1} {...register(`subgroups.${index}.count`, { valueAsNumber: true })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
+                {errors.subgroups?.[index]?.count && <p className="text-red-500 text-xs mt-1">{errors.subgroups[index]?.count?.message}</p>}
               </div>
-              <button type="button" onClick={() => remove(index)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
-                <Trash2 size={18} />
+              <button type="button" onClick={() => remove(index)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors" title="Remove">
+                <Trash2 size={17} />
               </button>
             </div>
           ))}
@@ -203,15 +212,33 @@ function GuestEntryForm({
             ))}
           </select>
         </div>
-        <div className="flex gap-3">
-          <button type="submit" className="flex-1 py-3 bg-gov-blue text-white rounded-lg font-medium hover:bg-gov-blue/90 transition-colors">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Rooms Occupied *</label>
+          <input
+            type="number"
+            min={1}
+            {...register('roomsRented', { valueAsNumber: true })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            placeholder="Enter number of rooms occupied"
+          />
+          {errors.roomsRented && <p className="text-red-600 text-sm mt-1">{errors.roomsRented.message}</p>}
+        </div>
+          </form>
+        </div>
+        {/* Sticky footer */}
+        <div className="px-6 py-4 border-t border-gray-200 shrink-0 flex gap-3">
+          <button
+            type="submit"
+            form="guest-entry-form"
+            className="flex-1 py-3 bg-gov-blue text-white rounded-lg font-medium hover:bg-gov-blue/90 transition-colors"
+          >
             Save Guest Record
           </button>
           <button type="button" onClick={onCancel} className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
             Cancel
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
@@ -254,6 +281,7 @@ export default function GuestDataEntry() {
         checkOut: first.checkOut,
         transportationMode: first.transportationMode,
         purpose: first.purpose,
+        roomsRented: first.roomsRented ?? 0,
         totalGuests,
         items,
       };
@@ -387,6 +415,7 @@ export default function GuestDataEntry() {
                 <th className="px-4 py-3 text-left font-medium">Check-out</th>
                 <th className="px-4 py-3 text-left font-medium">Transport</th>
                 <th className="px-4 py-3 text-left font-medium">Purpose</th>
+                <th className="px-4 py-3 text-right font-medium">Rooms</th>
                 <th className="px-4 py-3 text-right font-medium">Guests</th>
                 <th className="px-4 py-3 text-right font-medium">Actions</th>
               </tr>
@@ -407,6 +436,7 @@ export default function GuestDataEntry() {
                       {transportLabel[g.transportationMode] ?? g.transportationMode}
                     </td>
                     <td className="px-4 py-3 capitalize">{g.purpose}</td>
+                    <td className="px-4 py-3 text-right">{g.roomsRented}</td>
                     <td className="px-4 py-3 text-right font-medium">{g.totalGuests}</td>
                     <td className="px-4 py-3 text-right">
                       <button
@@ -458,6 +488,10 @@ export default function GuestDataEntry() {
                 <p>
                   <span className="font-medium text-gov-blue">Purpose of Visit:</span>{' '}
                   <span className="capitalize">{selectedGroup.purpose}</span>
+                </p>
+                <p>
+                  <span className="font-medium text-gov-blue">Rooms Occupied:</span>{' '}
+                  {selectedGroup.roomsRented}
                 </p>
                 <p>
                   <span className="font-medium text-gov-blue">Total Guests:</span>{' '}

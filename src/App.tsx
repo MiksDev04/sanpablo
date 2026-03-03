@@ -14,6 +14,7 @@ import BusinessDashboard from './pages/business/BusinessDashboard';
 import GuestDataEntry from './pages/business/GuestDataEntry.tsx';
 import BusinessMessages from './pages/business/BusinessMessages';
 import BusinessReports from './pages/business/BusinessReports';
+import BusinessProfile from './pages/business/BusinessProfile';
 
 // Admin pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="guest-entry" element={<GuestDataEntry />} />
         <Route path="reports" element={<BusinessReports />} />
         <Route path="messages" element={<BusinessMessages />} />
+        <Route path="profile" element={<BusinessProfile />} />
       </Route>
 
       <Route path="/admin" element={

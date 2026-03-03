@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { Home, UserPlus, MessageSquare, LogOut, FileDown } from 'lucide-react';
+import { Home, UserPlus, MessageSquare, LogOut, FileDown, Building2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const navItems = [
@@ -7,6 +7,7 @@ const navItems = [
   { to: '/business/guest-entry', icon: UserPlus, label: 'Guest Entry' },
   { to: '/business/reports', icon: FileDown, label: 'Reports' },
   { to: '/business/messages', icon: MessageSquare, label: 'Messages' },
+  { to: '/business/profile', icon: Building2, label: 'Profile' },
 ];
 
 export default function BusinessLayout() {

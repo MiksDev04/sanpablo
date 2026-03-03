@@ -21,6 +21,7 @@ export interface Business {
   address: string;
   contactNumber: string;
   ownerName: string;
+  totalRooms?: number;
   permitFileUrl?: string;
   validIdUrl?: string;
 }
@@ -36,6 +37,7 @@ export interface GuestRecord {
   transportationMode: TransportationMode;
   purpose: PurposeOfVisit;
   numberOfGuests: number;
+  roomsRented: number;
   createdAt: string;
 }
 

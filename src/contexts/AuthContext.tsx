@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => User | null;
   logout: () => void;
+  refreshUser: () => void;
   isAuthenticated: boolean;
 }
 
@@ -39,11 +40,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('sanpablo_user');
   }, []);
 
+  const refreshUser = useCallback(() => {
+    const stored = localStorage.getItem('sanpablo_user');
+    if (stored) {
+      try { setUser(JSON.parse(stored) as User); } catch { /* ignore */ }
+    }
+  }, []);
+
   return (
     <AuthContext.Provider value={{
       user,
       login,
       logout,
+      refreshUser,
       isAuthenticated: !!user,
     }}>
       {children}
