@@ -153,7 +153,7 @@ function GuestEntryForm({
           {fields.map((field, index) => (
             <div key={field.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-3 flex flex-wrap gap-3 items-end">
               <div className="flex-1 min-w-[160px]">
-                <label className="block text-xs font-medium text-gray-500 mb-1">Nationality</label>
+                <label className="block text-xs in adminfont-medium text-gray-500 mb-1">Nationality</label>
                 <select {...register(`subgroups.${index}.nationality`)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
                   {nationalities.map((n) => (
                     <option key={n} value={n}>{n}</option>

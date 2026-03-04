@@ -52,6 +52,23 @@ export function getTopNationalities(guestRecords: GuestRecord[], count = 5) {
     .map(([name, value]) => ({ name, value }));
 }
 
+export function getEstablishmentSubmissionStatus(
+  businesses: Business[],
+  monthlySubmissions: MonthlySubmission[],
+  month: number,
+  year: number
+): { submitted: Business[]; notSubmitted: Business[] } {
+  const submittedIds = new Set(
+    monthlySubmissions
+      .filter((s) => s.month === month && s.year === year && s.status === 'submitted')
+      .map((s) => s.businessId)
+  );
+  return {
+    submitted: businesses.filter((b) => submittedIds.has(b.id)),
+    notSubmitted: businesses.filter((b) => !submittedIds.has(b.id)),
+  };
+}
+
 export function getTouristTrendData(guestRecords: GuestRecord[], months = 12) {
   const now = new Date();
   const result: { month: string; guests: number }[] = [];

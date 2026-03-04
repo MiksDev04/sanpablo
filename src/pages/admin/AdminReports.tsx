@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Eye, FileDown, Download } from 'lucide-react';
+import { Eye, FileDown, Download, CheckCircle, XCircle } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 
 interface ReportFilters {
@@ -57,7 +57,7 @@ export default function AdminReports() {
 
   const { register, watch } = useForm<ReportFilters>({
     defaultValues: {
-      month: '',
+      month: (new Date().getMonth() + 1).toString(),
       year: currentYear.toString(),
       accommodation: 'All',
     },
@@ -117,6 +117,39 @@ export default function AdminReports() {
   }, [businesses, monthlySubmissions, filters]);
 
   const selectedRow = rows.find((r) => r.key === selectedKey) ?? null;
+
+  const now = new Date();
+  const statusMonth = filters.month
+    ? parseInt(filters.month, 10)
+    : now.getMonth() === 0 ? 12 : now.getMonth();
+  const statusYear = filters.year
+    ? parseInt(filters.year, 10)
+    : now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+
+  // Combined list: submitted rows + businesses with no submission for the period
+  const combinedList = useMemo(() => {
+    const submittedItems = rows.map((r) => ({ kind: 'submitted' as const, ...r }));
+    const submittedBizIds = new Set(
+      monthlySubmissions
+        .filter((s) => s.month === statusMonth && s.year === statusYear && s.status === 'submitted')
+        .map((s) => s.businessId)
+    );
+    let notSubmittedBizList = businesses.filter((b) => !submittedBizIds.has(b.id));
+    if (filters.accommodation && filters.accommodation !== 'All') {
+      notSubmittedBizList = notSubmittedBizList.filter((b) => b.businessName === filters.accommodation);
+    }
+    const notSubmittedItems = notSubmittedBizList.map((b) => ({
+      kind: 'not_submitted' as const,
+      key: `not-${b.id}-${statusYear}-${statusMonth}`,
+      businessId: b.id,
+      businessName: b.businessName,
+      address: b.address,
+      month: statusMonth,
+      year: statusYear,
+      submittedAt: '',
+    }));
+    return [...submittedItems, ...notSubmittedItems];
+  }, [rows, businesses, monthlySubmissions, statusMonth, statusYear, filters.accommodation]);
 
   const getRecordsForRow = (row: { businessId: string; month: number; year: number }) => {
     return guestRecords.filter(
@@ -833,11 +866,13 @@ export default function AdminReports() {
         )}
       </div>
 
+      {/* Establishment Submission Status is shown inline in the list below */}
+
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-lg font-semibold text-gov-blue">Monthly Reports from Accommodations</h2>
           <p className="text-xs text-gray-500">
-            {rows.length} submitted report{rows.length !== 1 ? 's' : ''}
+            {rows.length} submitted · {combinedList.length - rows.length} not yet submitted
             {selectedKeys.size > 0 && ` · ${selectedKeys.size} selected for export`}
           </p>
         </div>
@@ -857,56 +892,86 @@ export default function AdminReports() {
               className="h-4 w-4 accent-gov-blue cursor-pointer"
             />
             <label htmlFor="select-all-export" className="text-xs text-gray-600 cursor-pointer select-none">
-              Select All for Export
+              Select All Submitted for Export
             </label>
           </div>
         )}
         <div className="divide-y divide-gray-100">
-          {rows.length === 0 ? (
+          {combinedList.length === 0 ? (
             <div className="p-4 text-sm text-gray-500">
-              No monthly reports have been submitted yet.
+              No establishments found.
             </div>
           ) : (
-            rows.map((r) => (
-              <div
-                key={r.key}
-                className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-              >
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedKeys.has(r.key)}
-                    onChange={() => toggleKey(r.key)}
-                    className="mt-1 h-4 w-4 accent-gov-blue cursor-pointer flex-shrink-0"
-                  />
-                  <div>
-                    <p className="font-medium text-gov-blue">
-                      {r.businessName}
-                    </p>
-                    <p className="text-sm text-gray-700">
-                      {new Date(r.year, r.month - 1).toLocaleString('default', {
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Submitted on{' '}
-                      {r.submittedAt ? new Date(r.submittedAt).toLocaleString() : 'N/A'}
-                    </p>
+            combinedList.map((item) =>
+              item.kind === 'submitted' ? (
+                <div
+                  key={item.key}
+                  className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedKeys.has(item.key)}
+                      onChange={() => toggleKey(item.key)}
+                      className="mt-1 h-4 w-4 accent-gov-blue cursor-pointer flex-shrink-0"
+                    />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gov-blue">{item.businessName}</p>
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                          <CheckCircle size={11} /> Submitted
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700">
+                        {new Date(item.year, item.month - 1).toLocaleString('default', {
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Submitted on{' '}
+                        {item.submittedAt ? new Date(item.submittedAt).toLocaleString() : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedKey(item.key)}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-gov-blue text-white rounded-lg hover:bg-gov-blue/90"
+                    >
+                      <Eye size={14} />
+                      View Details
+                    </button>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedKey(r.key)}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-gov-blue text-white rounded-lg hover:bg-gov-blue/90"
-                  >
-                    <Eye size={14} />
-                    View Details
-                  </button>
+              ) : (
+                <div
+                  key={item.key}
+                  className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-red-50/40"
+                >
+                  <div className="flex items-start gap-3">
+                    {/* no checkbox — nothing to export */}
+                    <div className="mt-1 w-4 flex-shrink-0" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-700">{item.businessName}</p>
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
+                          <XCircle size={11} /> Not Submitted
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        {new Date(item.year, item.month - 1).toLocaleString('default', {
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </p>
+                      <p className="text-xs text-gray-400">No report submitted for this period.</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
+              )
+            )
           )}
         </div>
       </div>
