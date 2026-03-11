@@ -135,6 +135,18 @@ export default function BusinessReports() {
     });
     const transportationData = Array.from(transportationMap.entries()).map(([name, value]) => ({ name, value }));
 
+    // Local region breakdown (Philippine visitors only)
+    const localRegionMap = new Map<string, number>();
+    records
+      .filter((r) => r.nationality === 'Philippines' && r.localRegion)
+      .forEach((r) => {
+        const region = r.localRegion!;
+        localRegionMap.set(region, (localRegionMap.get(region) || 0) + r.numberOfGuests);
+      });
+    const localRegionData = Array.from(localRegionMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, value]) => ({ name, value }));
+
     // Build unique entry map (one entry per createdAt group) to get roomsRented per stay
     // Fall back to 1 when roomsRented is missing/zero (e.g. records created before the field existed)
     const entryMap = new Map<string, { roomsRented: number; checkIn: string; checkOut: string }>();
@@ -181,6 +193,7 @@ export default function BusinessReports() {
       averageLengthOfStay,
       genderData,
       nationalityData,
+      localRegionData,
       purposeData,
       ageData,
       transportationData,
@@ -221,6 +234,9 @@ export default function BusinessReports() {
     doc.text(`Average Occupancy Rate: ${data.averageOccupancyRate.toFixed(1)}%`, 18, y);
     y += 10;
 
+    doc.setFontSize(10);
+    doc.text('2. Gender Distribution', 14, y);
+    y += 4;
     autoTable(doc, {
       startY: y,
       head: [['Gender', 'Guests']],
@@ -230,21 +246,57 @@ export default function BusinessReports() {
       headStyles: { fillColor: [30, 58, 95] },
     });
 
-    const afterGenderY = (doc as any).lastAutoTable.finalY + 8;
+    let afterGenderY = (doc as any).lastAutoTable.finalY + 8;
 
+    doc.setFontSize(10);
+    doc.text('3. Age Group Distribution', 14, afterGenderY);
+    afterGenderY += 4;
     autoTable(doc, {
       startY: afterGenderY,
-      head: [['Nationality', 'Guests']],
+      head: [['Age Group', 'Guests']],
+      body: data.ageData.map((a) => [a.name, a.value.toString()]),
+      styles: { fontSize: 9 },
+      theme: 'grid',
+      headStyles: { fillColor: [30, 58, 95] },
+    });
+
+    let afterAgeY = (doc as any).lastAutoTable.finalY + 8;
+
+    doc.setFontSize(10);
+    doc.text('4. Country of Origin', 14, afterAgeY);
+    afterAgeY += 4;
+    autoTable(doc, {
+      startY: afterAgeY,
+      head: [['Country', 'Guests']],
       body: data.nationalityData.map((n) => [n.name, n.value.toString()]),
       styles: { fontSize: 9 },
       theme: 'grid',
       headStyles: { fillColor: [30, 58, 95] },
     });
 
-    const afterNationalityY = (doc as any).lastAutoTable.finalY + 8;
+    let afterNationalityY = (doc as any).lastAutoTable.finalY + 8;
 
+    if (data.localRegionData.length > 0) {
+      doc.setFontSize(10);
+      doc.text('4a. Home Region (Philippine Visitors)', 14, afterNationalityY);
+      afterNationalityY += 4;
+      autoTable(doc, {
+        startY: afterNationalityY,
+        head: [['Home Region', 'Guests']],
+        body: data.localRegionData.map((r) => [r.name, r.value.toString()]),
+        styles: { fontSize: 9 },
+        theme: 'grid',
+        headStyles: { fillColor: [30, 58, 95] },
+      });
+    }
+
+    let afterRegionY = (doc as any).lastAutoTable.finalY + 8;
+
+    doc.setFontSize(10);
+    doc.text('5. Purpose of Visit', 14, afterRegionY);
+    afterRegionY += 4;
     autoTable(doc, {
-      startY: afterNationalityY,
+      startY: afterRegionY,
       head: [['Purpose of Visit', 'Guests']],
       body: data.purposeData.map((p) => [p.name, p.value.toString()]),
       styles: { fontSize: 9 },
@@ -252,9 +304,10 @@ export default function BusinessReports() {
       headStyles: { fillColor: [30, 58, 95] },
     });
 
-    let afterPurposeY = (doc as any).lastAutoTable.finalY + 10;
+    let afterPurposeY = (doc as any).lastAutoTable.finalY + 8;
 
-    doc.text('5. Mode of Transportation', 14, afterPurposeY);
+    doc.setFontSize(10);
+    doc.text('6. Mode of Transportation', 14, afterPurposeY);
     afterPurposeY += 4;
     autoTable(doc, {
       startY: afterPurposeY,
@@ -297,7 +350,10 @@ export default function BusinessReports() {
       lines.push(`Age Group,${a.name},${a.value}`);
     });
     data.nationalityData.forEach((n) => {
-      lines.push(`Nationality,${n.name},${n.value}`);
+      lines.push(`Country,${n.name},${n.value}`);
+    });
+    data.localRegionData.forEach((r) => {
+      lines.push(`Home Region (PH),${r.name},${r.value}`);
     });
     data.purposeData.forEach((p) => {
       lines.push(`Purpose,${p.name},${p.value}`);
@@ -328,7 +384,8 @@ export default function BusinessReports() {
 
     data.genderData.forEach((g) => rows.push(['Gender', g.name, g.value]));
     data.ageData.forEach((a) => rows.push(['Age Group', a.name, a.value]));
-    data.nationalityData.forEach((n) => rows.push(['Nationality', n.name, n.value]));
+    data.nationalityData.forEach((n) => rows.push(['Country', n.name, n.value]));
+    data.localRegionData.forEach((r) => rows.push(['Home Region (PH)', r.name, r.value]));
     data.purposeData.forEach((p) => rows.push(['Purpose', p.name, p.value]));
     data.transportationData.forEach((t) => rows.push(['Transportation Mode', t.name, t.value]));
 
@@ -586,7 +643,7 @@ export default function BusinessReports() {
                     </div>
 
                     <div>
-                      <p className="font-semibold text-gov-blue mb-1">3. Nationality Distribution</p>
+                      <p className="font-semibold text-gov-blue mb-1">3. Country Distribution</p>
                       {data.nationalityData.length === 0 ? (
                         <p className="text-xs text-gray-500">No data for this month.</p>
                       ) : (
@@ -597,6 +654,18 @@ export default function BusinessReports() {
                             </li>
                           ))}
                         </ul>
+                      )}
+                      {data.localRegionData.length > 0 && (
+                        <>
+                          <p className="font-medium mt-2">Home Region (Philippine Visitors)</p>
+                          <ul className="list-disc list-inside">
+                            {data.localRegionData.map((r) => (
+                              <li key={r.name}>
+                                {r.name}: {r.value}
+                              </li>
+                            ))}
+                          </ul>
+                        </>
                       )}
                     </div>
 

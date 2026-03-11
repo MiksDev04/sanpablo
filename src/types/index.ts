@@ -1,5 +1,5 @@
 export type UserRole = 'business' | 'admin';
-export type UserStatus = 'pending' | 'approved' | 'rejected';
+export type UserStatus = 'pending' | 'approved' | 'rejected' | 'blacklisted';
 export type TransportationMode = 'private_car' | 'bus' | 'van' | 'motorcycle' | 'plane' | 'other';
 export type PurposeOfVisit = 'leisure' | 'business' | 'event' | 'others';
 export type AgeGroup = '1-9' | '10-17' | '18-25' | '26-35' | '36-45' | '46-55' | '56+' | 'prefer_not_to_say';
@@ -32,10 +32,13 @@ export interface GuestRecord {
   checkIn: string;
   checkOut: string;
   nationality: string;
+  localRegion?: string;
   gender: Gender;
   age: AgeGroup;
   transportationMode: TransportationMode;
+  transportationOther?: string;
   purpose: PurposeOfVisit;
+  purposeOther?: string;
   numberOfGuests: number;
   roomsRented: number;
   createdAt: string;
@@ -43,6 +46,7 @@ export interface GuestRecord {
 
 export interface GuestSubgroup {
   nationality: string;
+  localRegion?: string;
   gender: Gender;
   age: AgeGroup;
   count: number;
@@ -74,6 +78,7 @@ export interface Message {
   message: string;
   readStatus: boolean;
   createdAt: string;
+  messageType?: 'compliance' | 'announcement' | 'general';
 }
 
 export interface RegistrationRequest {

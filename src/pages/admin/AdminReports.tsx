@@ -235,6 +235,17 @@ export default function AdminReports() {
     });
     const transportationData = Array.from(transportationMap.entries()).map(([name, value]) => ({ name, value }));
 
+    const localRegionSummaryMap = new Map<string, number>();
+    records
+      .filter((r) => r.nationality === 'Philippines' && r.localRegion)
+      .forEach((r) => {
+        const region = r.localRegion!;
+        localRegionSummaryMap.set(region, (localRegionSummaryMap.get(region) || 0) + r.numberOfGuests);
+      });
+    const localRegionData = Array.from(localRegionSummaryMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, value]) => ({ name, value }));
+
     const averageOccupancyRate = calcOccupancyRate(
       records,
       selectedRow.month,
@@ -254,6 +265,7 @@ export default function AdminReports() {
       nationalityData,
       purposeData,
       transportationData,
+      localRegionData,
       averageOccupancyRate,
       submittedAt: selectedRow.submittedAt,
     };
@@ -335,6 +347,17 @@ export default function AdminReports() {
       });
       const transportationDataC = Array.from(transportationMapC.entries()).map(([name, value]) => ({ name, value }));
 
+      const localRegionMapCombinedPDF = new Map<string, number>();
+      allRecords
+        .filter((rec) => rec.nationality === 'Philippines' && rec.localRegion)
+        .forEach((rec) => {
+          const region = rec.localRegion!;
+          localRegionMapCombinedPDF.set(region, (localRegionMapCombinedPDF.get(region) || 0) + rec.numberOfGuests);
+        });
+      const localRegionDataCombined = Array.from(localRegionMapCombinedPDF.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, value]) => ({ name, value }));
+
       doc.setFontSize(14);
       doc.text('COMBINED MONTHLY TOURISM DEMOGRAPHIC REPORT', 14, 18);
       doc.setFontSize(10);
@@ -367,15 +390,41 @@ export default function AdminReports() {
       doc.text(`Average Length of Stay: ${averageLengthOfStay.toFixed(1)} nights`, 18, y); y += 6;
       doc.text(`Average Occupancy Rate: ${combinedOccupancy.toFixed(1)}%`, 18, y); y += 10;
 
+      doc.setFontSize(10);
+      doc.text('2. Gender Distribution', 14, y);
+      y += 4;
       autoTable(doc, { startY: y, head: [['Gender', 'Guests']], body: genderData.map((g) => [g.name, g.value.toString()]), styles: { fontSize: 9 }, theme: 'grid', headStyles: { fillColor: [30, 58, 95] } });
-      const cAfterGenderY = (doc as any).lastAutoTable.finalY + 8;
+
+      let cAfterGenderY = (doc as any).lastAutoTable.finalY + 8;
+      doc.setFontSize(10);
+      doc.text('3. Age Group Distribution', 14, cAfterGenderY);
+      cAfterGenderY += 4;
       autoTable(doc, { startY: cAfterGenderY, head: [['Age Group', 'Guests']], body: ageData.map((a) => [a.name, a.value.toString()]), styles: { fontSize: 9 }, theme: 'grid', headStyles: { fillColor: [30, 58, 95] } });
-      const cAfterAgeY = (doc as any).lastAutoTable.finalY + 8;
-      autoTable(doc, { startY: cAfterAgeY, head: [['Nationality', 'Guests']], body: nationalityData.map((n) => [n.name, n.value.toString()]), styles: { fontSize: 9 }, theme: 'grid', headStyles: { fillColor: [30, 58, 95] } });
-      const cAfterNationalityY = (doc as any).lastAutoTable.finalY + 8;
-      autoTable(doc, { startY: cAfterNationalityY, head: [['Purpose of Visit', 'Guests']], body: purposeData.map((p) => [p.name, p.value.toString()]), styles: { fontSize: 9 }, theme: 'grid', headStyles: { fillColor: [30, 58, 95] } });
-      let cAfterPurposeY = (doc as any).lastAutoTable.finalY + 10;
-      doc.text('5. Mode of Transportation', 14, cAfterPurposeY); cAfterPurposeY += 4;
+
+      let cAfterAgeY = (doc as any).lastAutoTable.finalY + 8;
+      doc.setFontSize(10);
+      doc.text('4. Country of Origin', 14, cAfterAgeY);
+      cAfterAgeY += 4;
+      autoTable(doc, { startY: cAfterAgeY, head: [['Country', 'Guests']], body: nationalityData.map((n) => [n.name, n.value.toString()]), styles: { fontSize: 9 }, theme: 'grid', headStyles: { fillColor: [30, 58, 95] } });
+
+      let cAfterNationalityY = (doc as any).lastAutoTable.finalY + 8;
+      if (localRegionDataCombined.length > 0) {
+        doc.setFontSize(10);
+        doc.text('4a. Home Region (Philippine Visitors)', 14, cAfterNationalityY);
+        cAfterNationalityY += 4;
+        autoTable(doc, { startY: cAfterNationalityY, head: [['Home Region', 'Guests']], body: localRegionDataCombined.map((r) => [r.name, r.value.toString()]), styles: { fontSize: 9 }, theme: 'grid', headStyles: { fillColor: [30, 58, 95] } });
+      }
+
+      let cAfterRegionY = (doc as any).lastAutoTable.finalY + 8;
+      doc.setFontSize(10);
+      doc.text('5. Purpose of Visit', 14, cAfterRegionY);
+      cAfterRegionY += 4;
+      autoTable(doc, { startY: cAfterRegionY, head: [['Purpose of Visit', 'Guests']], body: purposeData.map((p) => [p.name, p.value.toString()]), styles: { fontSize: 9 }, theme: 'grid', headStyles: { fillColor: [30, 58, 95] } });
+
+      let cAfterPurposeY = (doc as any).lastAutoTable.finalY + 8;
+      doc.setFontSize(10);
+      doc.text('6. Mode of Transportation', 14, cAfterPurposeY);
+      cAfterPurposeY += 4;
       autoTable(doc, { startY: cAfterPurposeY, head: [['Transportation Mode', 'Guests']], body: transportationDataC.map((t) => [t.name, t.value.toString()]), styles: { fontSize: 9 }, theme: 'grid', headStyles: { fillColor: [30, 58, 95] } });
 
       const cFinalY = (doc as any).lastAutoTable.finalY + 10;
@@ -469,6 +518,17 @@ export default function AdminReports() {
       });
       const transportationDataS = Array.from(transportationMapS.entries()).map(([name, value]) => ({ name, value }));
 
+      const localRegionMapS = new Map<string, number>();
+      records
+        .filter((rec) => rec.nationality === 'Philippines' && rec.localRegion)
+        .forEach((rec) => {
+          const region = rec.localRegion!;
+          localRegionMapS.set(region, (localRegionMapS.get(region) || 0) + rec.numberOfGuests);
+        });
+      const localRegionDataS = Array.from(localRegionMapS.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, value]) => ({ name, value }));
+
       const averageOccupancyRate = calcOccupancyRate(records, r.month, r.year, biz?.totalRooms);
 
       if (index > 0) {
@@ -510,6 +570,9 @@ export default function AdminReports() {
       doc.text(`Average Occupancy Rate: ${averageOccupancyRate.toFixed(1)}%`, 18, y);
       y += 10;
 
+      doc.setFontSize(10);
+      doc.text('2. Gender Distribution', 14, y);
+      y += 4;
       autoTable(doc, {
         startY: y,
         head: [['Gender', 'Guests']],
@@ -519,8 +582,11 @@ export default function AdminReports() {
         headStyles: { fillColor: [30, 58, 95] },
       });
 
-      const afterGenderY = (doc as any).lastAutoTable.finalY + 8;
+      let afterGenderY = (doc as any).lastAutoTable.finalY + 8;
 
+      doc.setFontSize(10);
+      doc.text('3. Age Group Distribution', 14, afterGenderY);
+      afterGenderY += 4;
       autoTable(doc, {
         startY: afterGenderY,
         head: [['Age Group', 'Guests']],
@@ -530,21 +596,43 @@ export default function AdminReports() {
         headStyles: { fillColor: [30, 58, 95] },
       });
 
-      const afterAgeY = (doc as any).lastAutoTable.finalY + 8;
+      let afterAgeY = (doc as any).lastAutoTable.finalY + 8;
 
+      doc.setFontSize(10);
+      doc.text('4. Country of Origin', 14, afterAgeY);
+      afterAgeY += 4;
       autoTable(doc, {
         startY: afterAgeY,
-        head: [['Nationality', 'Guests']],
+        head: [['Country', 'Guests']],
         body: nationalityData.map((n) => [n.name, n.value.toString()]),
         styles: { fontSize: 9 },
         theme: 'grid',
         headStyles: { fillColor: [30, 58, 95] },
       });
 
-      const afterNationalityY = (doc as any).lastAutoTable.finalY + 8;
+      let afterNationalityY = (doc as any).lastAutoTable.finalY + 8;
 
+      if (localRegionDataS.length > 0) {
+        doc.setFontSize(10);
+        doc.text('4a. Home Region (Philippine Visitors)', 14, afterNationalityY);
+        afterNationalityY += 4;
+        autoTable(doc, {
+          startY: afterNationalityY,
+          head: [['Home Region', 'Guests']],
+          body: localRegionDataS.map((reg) => [reg.name, reg.value.toString()]),
+          styles: { fontSize: 9 },
+          theme: 'grid',
+          headStyles: { fillColor: [30, 58, 95] },
+        });
+      }
+
+      let afterRegionY = (doc as any).lastAutoTable.finalY + 8;
+
+      doc.setFontSize(10);
+      doc.text('5. Purpose of Visit', 14, afterRegionY);
+      afterRegionY += 4;
       autoTable(doc, {
-        startY: afterNationalityY,
+        startY: afterRegionY,
         head: [['Purpose of Visit', 'Guests']],
         body: purposeData.map((p) => [p.name, p.value.toString()]),
         styles: { fontSize: 9 },
@@ -552,9 +640,10 @@ export default function AdminReports() {
         headStyles: { fillColor: [30, 58, 95] },
       });
 
-      let afterPurposeY = (doc as any).lastAutoTable.finalY + 10;
+      let afterPurposeY = (doc as any).lastAutoTable.finalY + 8;
 
-      doc.text('5. Mode of Transportation', 14, afterPurposeY);
+      doc.setFontSize(10);
+      doc.text('6. Mode of Transportation', 14, afterPurposeY);
       afterPurposeY += 4;
       autoTable(doc, {
         startY: afterPurposeY,
@@ -634,6 +723,13 @@ export default function AdminReports() {
       allRecords.forEach((rec) => {
         nationalityMap.set(rec.nationality, (nationalityMap.get(rec.nationality) || 0) + rec.numberOfGuests);
       });
+      const localRegionMapCombinedCSV = new Map<string, number>();
+      allRecords
+        .filter((rec) => rec.nationality === 'Philippines' && rec.localRegion)
+        .forEach((rec) => {
+          const region = rec.localRegion!;
+          localRegionMapCombinedCSV.set(region, (localRegionMapCombinedCSV.get(region) || 0) + rec.numberOfGuests);
+        });
       const purposeMap = new Map<string, number>();
       allRecords.forEach((rec) => {
         const key =
@@ -664,7 +760,8 @@ export default function AdminReports() {
       lines.push(`${combinedName},"${reportingPeriod}",Summary,Average Occupancy Rate,${combinedOccupancyCSV.toFixed(1)}%`);
       genderMap.forEach((value, name) => lines.push(`${combinedName},"${reportingPeriod}",Gender,${name},${value}`));
       ageBracketMap.forEach((value, name) => lines.push(`${combinedName},"${reportingPeriod}",Age Group,${name},${value}`));
-      nationalityMap.forEach((value, name) => lines.push(`${combinedName},"${reportingPeriod}",Nationality,${name},${value}`));
+      nationalityMap.forEach((value, name) => lines.push(`${combinedName},"${reportingPeriod}",Country,${name},${value}`));
+      localRegionMapCombinedCSV.forEach((value, name) => lines.push(`${combinedName},"${reportingPeriod}",Home Region (PH),${name},${value}`));
       purposeMap.forEach((value, name) => lines.push(`${combinedName},"${reportingPeriod}",Purpose,${name},${value}`));
       const transportationMapCSV = new Map<string, number>();
       allRecords.forEach((rec) => {
@@ -746,6 +843,17 @@ export default function AdminReports() {
         value,
       }));
 
+      const localRegionMapSCSV = new Map<string, number>();
+      records
+        .filter((rec) => rec.nationality === 'Philippines' && rec.localRegion)
+        .forEach((rec) => {
+          const region = rec.localRegion!;
+          localRegionMapSCSV.set(region, (localRegionMapSCSV.get(region) || 0) + rec.numberOfGuests);
+        });
+      const localRegionDataSCSV = Array.from(localRegionMapSCSV.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, value]) => ({ name, value }));
+
       const purposeMap = new Map<string, number>();
       records.forEach((rec) => {
         const key =
@@ -774,7 +882,10 @@ export default function AdminReports() {
         lines.push(`${name},Age Group,${a.name},${a.value}`);
       });
       nationalityData.forEach((n) => {
-        lines.push(`${name},Nationality,${n.name},${n.value}`);
+        lines.push(`${name},Country,${n.name},${n.value}`);
+      });
+      localRegionDataSCSV.forEach((r) => {
+        lines.push(`${name},Home Region (PH),${r.name},${r.value}`);
       });
       purposeData.forEach((p) => {
         lines.push(`${name},Purpose,${p.name},${p.value}`);
@@ -1061,7 +1172,7 @@ export default function AdminReports() {
               </div>
 
               <div>
-                <p className="font-semibold text-gov-blue mb-1">3. Nationality Distribution</p>
+                <p className="font-semibold text-gov-blue mb-1">3. Country Distribution</p>
                 {summary.nationalityData.length === 0 ? (
                   <p className="text-xs text-gray-500">No data for this month.</p>
                 ) : (
@@ -1072,6 +1183,18 @@ export default function AdminReports() {
                       </li>
                     ))}
                   </ul>
+                )}
+                {summary.localRegionData.length > 0 && (
+                  <>
+                    <p className="font-medium mt-2">Home Region (Philippine Visitors)</p>
+                    <ul className="list-disc list-inside">
+                      {summary.localRegionData.map((r) => (
+                        <li key={r.name}>
+                          {r.name}: {r.value}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
                 )}
               </div>
 

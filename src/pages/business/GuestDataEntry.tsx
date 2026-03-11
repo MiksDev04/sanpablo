@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { Plus, Trash2, Search, X, Eye } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
-import { nationalities } from '../../data/dummyData';
+import { nationalities, philippineRegions } from '../../data/dummyData';
 import type { AgeGroup, Gender, TransportationMode, PurposeOfVisit, GuestRecord } from '../../types';
 
 function differenceInDays(dateLeft: Date, dateRight: Date): number {
@@ -15,9 +15,18 @@ function differenceInDays(dateLeft: Date, dateRight: Date): number {
 
 const subgroupSchema = z.object({
   nationality: z.string().min(1, 'Required'),
+  localRegion: z.string().optional(),
   gender: z.enum(['male', 'female', 'lgbt', 'prefer_not_to_say']),
   age: z.enum(['1-9', '10-17', '18-25', '26-35', '36-45', '46-55', '56+', 'prefer_not_to_say']),
   count: z.number().min(1, 'Min 1'),
+}).superRefine((data, ctx) => {
+  if (data.nationality === 'Philippines' && !data.localRegion) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Region is required for Philippine visitors',
+      path: ['localRegion'],
+    });
+  }
 });
 
 const schema = z.object({
@@ -25,7 +34,9 @@ const schema = z.object({
   checkOut: z.string().min(1, 'Check-out date required'),
   subgroups: z.array(subgroupSchema).min(1, 'Add at least one guest subgroup'),
   transportationMode: z.enum(['private_car', 'bus', 'van', 'motorcycle', 'plane', 'other']),
+  transportationOther: z.string().optional(),
   purpose: z.enum(['leisure', 'business', 'event', 'others']),
+  purposeOther: z.string().optional(),
   roomsRented: z.number().min(1, 'At least 1 room required'),
 }).refine((data) => {
   const checkIn = new Date(data.checkIn);
@@ -34,7 +45,13 @@ const schema = z.object({
 }, { message: 'Check-out must be on or after check-in', path: ['checkOut'] }).refine((data) => {
   const total = data.subgroups.reduce((s, g) => s + g.count, 0);
   return total > 0;
-}, { message: 'Total guests must be greater than 0', path: ['subgroups'] });
+}, { message: 'Total guests must be greater than 0', path: ['subgroups'] }).refine((data) => {
+  if (data.transportationMode === 'other' && !data.transportationOther?.trim()) return false;
+  return true;
+}, { message: 'Please specify the mode of transportation', path: ['transportationOther'] }).refine((data) => {
+  if (data.purpose === 'others' && !data.purposeOther?.trim()) return false;
+  return true;
+}, { message: 'Please specify the purpose of visit', path: ['purposeOther'] });
 
 type FormData = z.infer<typeof schema>;
 
@@ -92,6 +109,8 @@ function GuestEntryForm({
   const totalGuests = subgroups?.reduce((s, g) => s + (g.count || 0), 0) ?? 0;
   const checkIn = watch('checkIn');
   const checkOut = watch('checkOut');
+  const transportationMode = watch('transportationMode');
+  const purpose = watch('purpose');
   const lengthOfStay = checkIn && checkOut
     ? Math.max(0, differenceInDays(new Date(checkIn), new Date(checkOut)))
     : 0;
@@ -102,10 +121,13 @@ function GuestEntryForm({
       checkIn: data.checkIn,
       checkOut: data.checkOut,
       nationality: g.nationality,
+      localRegion: g.nationality === 'Philippines' ? (g.localRegion || undefined) : undefined,
       gender: g.gender,
       age: g.age,
       transportationMode: data.transportationMode,
+      transportationOther: data.transportationMode === 'other' ? (data.transportationOther || undefined) : undefined,
       purpose: data.purpose,
+      purposeOther: data.purpose === 'others' ? (data.purposeOther || undefined) : undefined,
       numberOfGuests: g.count,
       roomsRented: data.roomsRented,
     }));
@@ -153,7 +175,7 @@ function GuestEntryForm({
           {fields.map((field, index) => (
             <div key={field.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-3 flex flex-wrap gap-3 items-end">
               <div className="flex-1 min-w-[160px]">
-                <label className="block text-xs in adminfont-medium text-gray-500 mb-1">Nationality</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Country</label>
                 <select {...register(`subgroups.${index}.nationality`)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
                   {nationalities.map((n) => (
                     <option key={n} value={n}>{n}</option>
@@ -161,6 +183,18 @@ function GuestEntryForm({
                 </select>
                 {errors.subgroups?.[index]?.nationality && <p className="text-red-500 text-xs mt-1">{errors.subgroups[index]?.nationality?.message}</p>}
               </div>
+              {subgroups[index]?.nationality === 'Philippines' && (
+                <div className="flex-1 min-w-[160px]">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Home Region <span className="text-red-500">*</span></label>
+                  <select {...register(`subgroups.${index}.localRegion`)} className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 ${errors.subgroups?.[index]?.localRegion ? 'border-red-400' : 'border-gray-300'}`}>
+                    <option value="">Select region…</option>
+                    {philippineRegions.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                  {errors.subgroups?.[index]?.localRegion && <p className="text-red-500 text-xs mt-1">{errors.subgroups[index]?.localRegion?.message}</p>}
+                </div>
+              )}
               <div className="min-w-[120px]">
                 <label className="block text-xs font-medium text-gray-500 mb-1">Gender</label>
                 <select {...register(`subgroups.${index}.gender`)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
@@ -203,6 +237,17 @@ function GuestEntryForm({
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
+          {transportationMode === 'other' && (
+            <div className="mt-2">
+              <input
+                type="text"
+                {...register('transportationOther')}
+                placeholder="Please specify"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm ${errors.transportationOther ? 'border-red-400' : 'border-gray-300'}`}
+              />
+              {errors.transportationOther && <p className="text-red-600 text-sm mt-1">{errors.transportationOther.message}</p>}
+            </div>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Purpose of Visit *</label>
@@ -211,6 +256,17 @@ function GuestEntryForm({
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
+          {purpose === 'others' && (
+            <div className="mt-2">
+              <input
+                type="text"
+                {...register('purposeOther')}
+                placeholder="Please specify"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm ${errors.purposeOther ? 'border-red-400' : 'border-gray-300'}`}
+              />
+              {errors.purposeOther && <p className="text-red-600 text-sm mt-1">{errors.purposeOther.message}</p>}
+            </div>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Rooms Occupied *</label>
@@ -280,7 +336,9 @@ export default function GuestDataEntry() {
         checkIn: first.checkIn,
         checkOut: first.checkOut,
         transportationMode: first.transportationMode,
+        transportationOther: first.transportationOther,
         purpose: first.purpose,
+        purposeOther: first.purposeOther,
         roomsRented: first.roomsRented ?? 0,
         totalGuests,
         items,
@@ -357,7 +415,7 @@ export default function GuestDataEntry() {
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Nationality</label>
+              <label className="block text-xs text-gray-500 mb-1">Country</label>
               <select
                 value={filters.nationality}
                 onChange={(e) => setFilters((f) => ({ ...f, nationality: e.target.value }))}
@@ -484,10 +542,16 @@ export default function GuestDataEntry() {
                 <p>
                   <span className="font-medium text-gov-blue">Mode of Transportation:</span>{' '}
                   {transportLabel[selectedGroup.transportationMode] ?? selectedGroup.transportationMode}
+                  {selectedGroup.transportationMode === 'other' && selectedGroup.transportationOther && (
+                    <span className="text-gray-500"> — {selectedGroup.transportationOther}</span>
+                  )}
                 </p>
                 <p>
                   <span className="font-medium text-gov-blue">Purpose of Visit:</span>{' '}
                   <span className="capitalize">{selectedGroup.purpose}</span>
+                  {selectedGroup.purpose === 'others' && selectedGroup.purposeOther && (
+                    <span className="text-gray-500"> — {selectedGroup.purposeOther}</span>
+                  )}
                 </p>
                 <p>
                   <span className="font-medium text-gov-blue">Rooms Occupied:</span>{' '}
@@ -516,7 +580,10 @@ export default function GuestDataEntry() {
                   <table className="w-full text-xs">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-3 py-2 text-left font-medium text-gray-600">Nationality</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-600">Country</th>
+                        {selectedGroup.items.some((r) => r.nationality === 'Philippines') && (
+                          <th className="px-3 py-2 text-left font-medium text-gray-600">Home Region</th>
+                        )}
                         <th className="px-3 py-2 text-left font-medium text-gray-600">Gender</th>
                         <th className="px-3 py-2 text-left font-medium text-gray-600">Age Group</th>
                         <th className="px-3 py-2 text-right font-medium text-gray-600">Guests</th>
@@ -526,6 +593,9 @@ export default function GuestDataEntry() {
                       {selectedGroup.items.map((r) => (
                         <tr key={r.id} className="border-t border-gray-100">
                           <td className="px-3 py-2">{r.nationality}</td>
+                          {selectedGroup.items.some((i) => i.nationality === 'Philippines') && (
+                            <td className="px-3 py-2 text-gray-500">{r.nationality === 'Philippines' ? (r.localRegion || '—') : '—'}</td>
+                          )}
                           <td className="px-3 py-2 capitalize">{r.gender}</td>
                           <td className="px-3 py-2">{r.age}</td>
                           <td className="px-3 py-2 text-right">{r.numberOfGuests}</td>

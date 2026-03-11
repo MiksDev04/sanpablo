@@ -69,6 +69,31 @@ export function getEstablishmentSubmissionStatus(
   };
 }
 
+export function getAdminGenderDistribution(guestRecords: GuestRecord[]) {
+  const map = new Map<string, number>();
+  guestRecords.forEach((r) => {
+    const total = (map.get(r.gender) || 0) + r.numberOfGuests;
+    map.set(r.gender, total);
+  });
+  return Array.from(map.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, value]) => ({ name, value }));
+}
+
+export function getAdminLocalRegionBreakdown(guestRecords: GuestRecord[], count = 10) {
+  const map = new Map<string, number>();
+  guestRecords
+    .filter((r) => r.nationality === 'Philippines' && r.localRegion)
+    .forEach((r) => {
+      const region = r.localRegion!;
+      map.set(region, (map.get(region) || 0) + r.numberOfGuests);
+    });
+  return Array.from(map.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, count)
+    .map(([name, value]) => ({ name, value }));
+}
+
 export function getTouristTrendData(guestRecords: GuestRecord[], months = 12) {
   const now = new Date();
   const result: { month: string; guests: number }[] = [];

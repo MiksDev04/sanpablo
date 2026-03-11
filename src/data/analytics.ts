@@ -45,18 +45,41 @@ export function getNationalityBreakdown(guestRecords: GuestRecord[], businessId:
   return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
 }
 
-export function getMonthlyTouristCount(guestRecords: GuestRecord[], businessId: string, year: number) {
-  const records = getRecordsForYear(guestRecords, businessId, year);
-  const months = Array.from({ length: 12 }, (_, i) => i + 1);
-  return months.map((month) => {
+export function getMonthlyTouristCount(guestRecords: GuestRecord[], businessId: string, months = 12) {
+  const records = getBusinessRecords(guestRecords, businessId);
+  const now = new Date();
+  const result: { month: string; guests: number }[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const m = d.getMonth() + 1;
+    const y = d.getFullYear();
     const total = records
-      .filter((r) => new Date(r.checkIn).getMonth() + 1 === month)
+      .filter((r) => {
+        const checkIn = new Date(r.checkIn);
+        return checkIn.getMonth() + 1 === m && checkIn.getFullYear() === y;
+      })
       .reduce((sum, r) => sum + r.numberOfGuests, 0);
-    return {
-      month: new Date(year, month - 1).toLocaleString('default', { month: 'short' }),
+    result.push({
+      month: d.toLocaleString('default', { month: 'short', year: '2-digit' }),
       guests: total,
-    };
+    });
+  }
+  return result;
+}
+
+export function getLocalRegionBreakdown(guestRecords: GuestRecord[], businessId: string, count = 5) {
+  const records = getBusinessRecords(guestRecords, businessId).filter(
+    (r) => r.nationality === 'Philippines' && r.localRegion
+  );
+  const map = new Map<string, number>();
+  records.forEach((r) => {
+    const region = r.localRegion!;
+    map.set(region, (map.get(region) || 0) + r.numberOfGuests);
   });
+  return Array.from(map.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, count)
+    .map(([name, value]) => ({ name, value }));
 }
 
 export function getGenderDistribution(guestRecords: GuestRecord[], businessId: string, month?: number, year?: number) {

@@ -21,6 +21,7 @@ import {
   getGenderDistribution,
   getAverageLengthOfStay,
   getTransportationModeData,
+  getLocalRegionBreakdown,
 } from '../../data/analytics';
 
 const COLORS = ['#1e3a5f', '#0d6b54', '#c9a227', '#4db89a', '#80ccb7', '#1aa47d', '#a47d1a', '#5f1e3a'];
@@ -33,11 +34,12 @@ export default function BusinessDashboard() {
   const totalThisMonth = getTotalGuestsThisMonth(guestRecords, businessId);
   const totalThisYear = getTotalGuestsThisYear(guestRecords, businessId);
   const nationalityData = getNationalityBreakdown(guestRecords, businessId);
-  const monthlyData = getMonthlyTouristCount(guestRecords, businessId, 2025);
+  const monthlyData = getMonthlyTouristCount(guestRecords, businessId);
   const genderData = getGenderDistribution(guestRecords, businessId);
   const avgStay = getAverageLengthOfStay(guestRecords, businessId);
   const transportData = getTransportationModeData(guestRecords, businessId);
   const mostCommonTransport = transportData[0]?.name ?? 'N/A';
+  const localRegionData = getLocalRegionBreakdown(guestRecords, businessId);
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
@@ -60,7 +62,7 @@ export default function BusinessDashboard() {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
-          <h2 className="text-lg font-semibold text-gov-blue mb-4">Nationality Breakdown</h2>
+          <h2 className="text-lg font-semibold text-gov-blue mb-4">Country Breakdown</h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -108,7 +110,7 @@ export default function BusinessDashboard() {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
-          <h2 className="text-lg font-semibold text-gov-blue mb-4">Monthly Tourist Count (2025)</h2>
+          <h2 className="text-lg font-semibold text-gov-blue mb-4">Monthly Tourist Count (Last 12 Months)</h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyData}>
@@ -128,6 +130,24 @@ export default function BusinessDashboard() {
             <p className="text-2xl font-bold text-primary-600">{mostCommonTransport}</p>
           </div>
         </div>
+      </div>
+      <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
+        <h2 className="text-lg font-semibold text-gov-blue mb-4">Top Local Regions (Philippine Visitors)</h2>
+        {localRegionData.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-8">No local region data recorded yet</p>
+        ) : (
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={localRegionData} margin={{ bottom: 60, left: 8, right: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-35} textAnchor="end" />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v) => [v, 'Visitors']} />
+                <Bar dataKey="value" name="Visitors" fill="#c9a227" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
     </div>
   );
