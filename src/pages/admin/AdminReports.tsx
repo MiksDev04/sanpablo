@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Eye, FileDown, Download, CheckCircle, XCircle } from 'lucide-react';
+import { Eye, FileDown, Download, CheckCircle, XCircle, ChevronDown } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 
 interface ReportFilters {
@@ -22,8 +22,8 @@ function calcOccupancyRate(
   month: number,
   year: number,
   totalRooms: number | undefined,
-): number {
-  if (!totalRooms || totalRooms <= 0) return 0;
+): { rate: number; avgRooms: number } {
+  if (!totalRooms || totalRooms <= 0) return { rate: 0, avgRooms: 0 };
   // Fall back to 1 when roomsRented is missing/zero (records created before the field existed)
   const entryMap = new Map<string, { roomsRented: number; checkIn: string; checkOut: string }>();
   records.forEach((r) => {
@@ -43,8 +43,10 @@ function calcOccupancyRate(
     });
     if (roomsToday > 0) { totalRoomDays += roomsToday; activeDays += 1; }
   }
-  if (activeDays === 0) return 0;
-  return (totalRoomDays / activeDays / totalRooms) * 100;
+  if (activeDays === 0) return { rate: 0, avgRooms: 0 };
+  const avgRooms = totalRoomDays / activeDays;
+  const rate = (avgRooms / totalRooms) * 100;
+  return { rate, avgRooms };
 }
 
 export default function AdminReports() {
@@ -66,6 +68,7 @@ export default function AdminReports() {
   const filters = watch();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
 
   const toggleKey = (key: string) => {
     setSelectedKeys((prev) => {
@@ -246,7 +249,7 @@ export default function AdminReports() {
       .sort((a, b) => b[1] - a[1])
       .map(([name, value]) => ({ name, value }));
 
-    const averageOccupancyRate = calcOccupancyRate(
+    const occupancyData = calcOccupancyRate(
       records,
       selectedRow.month,
       selectedRow.year,
@@ -266,7 +269,8 @@ export default function AdminReports() {
       purposeData,
       transportationData,
       localRegionData,
-      averageOccupancyRate,
+      averageOccupancyRate: occupancyData.rate,
+      avgRoomsOccupied: occupancyData.avgRooms,
       submittedAt: selectedRow.submittedAt,
     };
   }, [businesses, guestRecords, selectedRow]);
@@ -372,23 +376,27 @@ export default function AdminReports() {
 
       // Combined occupancy: weighted average across rows that have totalRooms set
       const combinedOccupancy = (() => {
-        let weightedSum = 0; let totalCap = 0;
+        let weightedSum = 0; let totalCap = 0; let totalRoomDays = 0; let totalActiveDays = 0;
         exportRows.forEach((row) => {
           const rowBiz = businesses.find((b) => b.id === row.businessId);
           if (!rowBiz?.totalRooms) return;
           const rowRecords = getRecordsForRow({ businessId: row.businessId, month: row.month, year: row.year });
-          const rate = calcOccupancyRate(rowRecords, row.month, row.year, rowBiz.totalRooms);
-          weightedSum += rate * rowBiz.totalRooms;
+          const occupancyData = calcOccupancyRate(rowRecords, row.month, row.year, rowBiz.totalRooms);
+          weightedSum += occupancyData.rate * rowBiz.totalRooms;
           totalCap += rowBiz.totalRooms;
+          totalRoomDays += occupancyData.avgRooms;
         });
-        return totalCap > 0 ? weightedSum / totalCap : 0;
+        const avgRate = totalCap > 0 ? weightedSum / totalCap : 0;
+        const avgRooms = exportRows.length > 0 ? totalRoomDays / exportRows.length : 0;
+        return { rate: avgRate, avgRooms };
       })();
 
       doc.text('1. Summary of Tourist Arrivals (Combined)', 14, y); y += 6;
       doc.text(`Total Guests Checked-in: ${totalGuests}`, 18, y); y += 6;
       doc.text(`Total Guest Nights: ${totalGuestNights}`, 18, y); y += 6;
       doc.text(`Average Length of Stay: ${averageLengthOfStay.toFixed(1)} nights`, 18, y); y += 6;
-      doc.text(`Average Occupancy Rate: ${combinedOccupancy.toFixed(1)}%`, 18, y); y += 10;
+      doc.text(`Average Rooms Occupied: ${combinedOccupancy.avgRooms.toFixed(1)}`, 18, y); y += 6;
+      doc.text(`Average Occupancy Rate: ${combinedOccupancy.rate.toFixed(1)}%`, 18, y); y += 10;
 
       doc.setFontSize(10);
       doc.text('2. Gender Distribution', 14, y);
@@ -529,7 +537,7 @@ export default function AdminReports() {
         .sort((a, b) => b[1] - a[1])
         .map(([name, value]) => ({ name, value }));
 
-      const averageOccupancyRate = calcOccupancyRate(records, r.month, r.year, biz?.totalRooms);
+      const occupancyData = calcOccupancyRate(records, r.month, r.year, biz?.totalRooms);
 
       if (index > 0) {
         doc.addPage();
@@ -567,7 +575,9 @@ export default function AdminReports() {
       y += 6;
       doc.text(`Average Length of Stay: ${averageLengthOfStay.toFixed(1)} nights`, 18, y);
       y += 6;
-      doc.text(`Average Occupancy Rate: ${averageOccupancyRate.toFixed(1)}%`, 18, y);
+      doc.text(`Average Rooms Occupied: ${occupancyData.avgRooms.toFixed(1)}`, 18, y);
+      y += 6;
+      doc.text(`Average Occupancy Rate: ${occupancyData.rate.toFixed(1)}%`, 18, y);
       y += 10;
 
       doc.setFontSize(10);
@@ -746,18 +756,22 @@ export default function AdminReports() {
       lines.push(`${combinedName},"${reportingPeriod}",Summary,Total Guest Nights,${totalGuestNights}`);
       lines.push(`${combinedName},"${reportingPeriod}",Summary,Average Length of Stay,${averageLengthOfStay.toFixed(1)}`);
       const combinedOccupancyCSV = (() => {
-        let weightedSum = 0; let totalCap = 0;
+        let weightedSum = 0; let totalCap = 0; let totalRoomDays = 0;
         exportRows.forEach((row) => {
           const rowBiz = businesses.find((b) => b.id === row.businessId);
           if (!rowBiz?.totalRooms) return;
           const rowRecords = getRecordsForRow({ businessId: row.businessId, month: row.month, year: row.year });
-          const rate = calcOccupancyRate(rowRecords, row.month, row.year, rowBiz.totalRooms);
-          weightedSum += rate * rowBiz.totalRooms;
+          const occupancyData = calcOccupancyRate(rowRecords, row.month, row.year, rowBiz.totalRooms);
+          weightedSum += occupancyData.rate * rowBiz.totalRooms;
           totalCap += rowBiz.totalRooms;
+          totalRoomDays += occupancyData.avgRooms;
         });
-        return totalCap > 0 ? weightedSum / totalCap : 0;
+        const avgRate = totalCap > 0 ? weightedSum / totalCap : 0;
+        const avgRooms = exportRows.length > 0 ? totalRoomDays / exportRows.length : 0;
+        return { rate: avgRate, avgRooms };
       })();
-      lines.push(`${combinedName},"${reportingPeriod}",Summary,Average Occupancy Rate,${combinedOccupancyCSV.toFixed(1)}%`);
+      lines.push(`${combinedName},"${reportingPeriod}",Summary,Average Rooms Occupied,${combinedOccupancyCSV.avgRooms.toFixed(1)}`);
+      lines.push(`${combinedName},"${reportingPeriod}",Summary,Average Occupancy Rate,${combinedOccupancyCSV.rate.toFixed(1)}%`);
       genderMap.forEach((value, name) => lines.push(`${combinedName},"${reportingPeriod}",Gender,${name},${value}`));
       ageBracketMap.forEach((value, name) => lines.push(`${combinedName},"${reportingPeriod}",Age Group,${name},${value}`));
       nationalityMap.forEach((value, name) => lines.push(`${combinedName},"${reportingPeriod}",Country,${name},${value}`));
@@ -800,7 +814,7 @@ export default function AdminReports() {
         return sum + differenceInDays(checkIn, checkOut) * rec.numberOfGuests;
       }, 0);
       const averageLengthOfStay = totalGuests > 0 ? totalGuestNights / totalGuests : 0;
-      const averageOccupancyRate = calcOccupancyRate(records, r.month, r.year, biz?.totalRooms);
+      const occupancyData = calcOccupancyRate(records, r.month, r.year, biz?.totalRooms);
 
       const genderMap = new Map<string, number>();
       records.forEach((rec) => {
@@ -873,7 +887,8 @@ export default function AdminReports() {
       lines.push(`${name},Summary,Total Guests Checked-in,${totalGuests}`);
       lines.push(`${name},Summary,Total Guest Nights,${totalGuestNights}`);
       lines.push(`${name},Summary,Average Length of Stay,${averageLengthOfStay.toFixed(1)}`);
-      lines.push(`${name},Summary,Average Occupancy Rate,${averageOccupancyRate.toFixed(1)}%`);
+      lines.push(`${name},Summary,Average Rooms Occupied,${occupancyData.avgRooms.toFixed(1)}`);
+      lines.push(`${name},Summary,Average Occupancy Rate,${occupancyData.rate.toFixed(1)}%`);
 
       genderData.forEach((g) => {
         lines.push(`${name},Gender,${g.name},${g.value}`);
@@ -920,39 +935,51 @@ export default function AdminReports() {
     <div className="p-6 lg:p-8 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold text-gov-blue mb-6">Reports</h1>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gov-blue mb-4">Filters</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Month</label>
-            <select {...register('month')} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-              <option value="">All</option>
-              {months.map((m) => (
-                <option key={m} value={m}>
-                  {new Date(2000, parseInt(m, 10) - 1).toLocaleString('default', { month: 'long' })}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Year</label>
-            <select {...register('year')} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-              {years.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Accommodation</label>
-            <select {...register('accommodation')} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-              {accommodationOptions.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-6 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowFilters(!showFilters)}
+          className="flex items-center justify-between w-full p-4 lg:px-6 lg:py-4 lg:pointer-events-none"
+        >
+          <h2 className="text-lg font-semibold text-gov-blue">Filters</h2>
+          <ChevronDown 
+            size={20} 
+            className={`text-gray-500 transition-transform lg:hidden ${showFilters ? 'rotate-180' : ''}`}
+          />
+        </button>
+        <div className={`${showFilters ? 'block' : 'hidden'} lg:block border-t border-gray-200 lg:border-t-0 px-4 pb-4 lg:px-6 lg:pb-6 lg:pt-0`}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Month</label>
+              <select {...register('month')} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="">All</option>
+                {months.map((m) => (
+                  <option key={m} value={m}>
+                    {new Date(2000, parseInt(m, 10) - 1).toLocaleString('default', { month: 'long' })}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Year</label>
+              <select {...register('year')} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                {years.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Accommodation</label>
+              <select {...register('accommodation')} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                {accommodationOptions.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -1140,6 +1167,7 @@ export default function AdminReports() {
                 <p>Total Guests Checked-in: {summary.totalGuests}</p>
                 <p>Total Guest Nights: {summary.totalGuestNights}</p>
                 <p>Average Length of Stay: {summary.averageLengthOfStay.toFixed(1)} nights</p>
+                <p>Average Rooms Occupied: {summary.avgRoomsOccupied.toFixed(1)}</p>
                 <p>Average Occupancy Rate: {summary.averageOccupancyRate.toFixed(1)}%</p>
               </div>
 

@@ -10,7 +10,9 @@ const schema = z.object({
   permitNumber: z.string().min(1, 'Permit number is required'),
   ownerName: z.string().min(2, 'Owner name is required'),
   email: z.string().email('Invalid email'),
-  contactNumber: z.string().min(10, 'Valid contact number required'),
+  contactNumber: z.string()
+    .min(10, 'Contact number must be at least 10 digits')
+    .regex(/^[0-9]+$/, 'Contact number must contain numbers only'),
   address: z.string().min(5, 'Address is required'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
@@ -97,7 +99,19 @@ export default function RegistrationRequestPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number *</label>
-              <input {...register('contactNumber')} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="0917-123-4567" />
+              <input 
+                {...register('contactNumber')} 
+                type="tel"
+                pattern="[0-9]*"
+                inputMode="numeric"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" 
+                placeholder="09171234567"
+                onKeyPress={(e) => {
+                  if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                    e.preventDefault();
+                  }
+                }}
+              />
               {errors.contactNumber && <p className="text-red-600 text-sm mt-1">{errors.contactNumber.message}</p>}
             </div>
             <div>

@@ -20,6 +20,7 @@ export interface Business {
   permitNumber: string;
   address: string;
   contactNumber: string;
+  email: string;
   ownerName: string;
   totalRooms?: number;
   permitFileUrl?: string;

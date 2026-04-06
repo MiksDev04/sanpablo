@@ -16,3 +16,12 @@ body {
 h1, h2, h3, h4, h5, h6 {
   @apply text-gov-blue font-semibold;
 }
+
+/* Safe area insets for mobile devices (notch support) */
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-pb {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}

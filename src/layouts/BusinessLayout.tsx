@@ -15,6 +15,22 @@ export default function BusinessLayout() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-gray-50">
+      {/* Mobile Top Bar */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-gov-blue truncate">San Pablo City Tourism</p>
+          <p className="text-[11px] text-gray-500 truncate">{user?.business?.businessName || user?.email}</p>
+        </div>
+        <button
+          type="button"
+          onClick={logout}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-gov-blue text-white hover:bg-gov-blue/90"
+        >
+          <LogOut size={14} />
+          <span>Logout</span>
+        </button>
+      </header>
+
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-col w-64 bg-gov-blue text-white fixed h-full">
         <div className="p-6 border-b border-gov-gold/30">
@@ -53,7 +69,7 @@ export default function BusinessLayout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64 pb-20 lg:pb-0 min-h-screen">
+      <main className="flex-1 lg:ml-64 pb-20 lg:pb-0 pt-16 lg:pt-0 min-h-screen">
         <Outlet />
       </main>
 

@@ -9,7 +9,9 @@ import { useData } from '../../contexts/DataContext';
 const schema = z.object({
   ownerName: z.string().min(1, 'Owner name is required'),
   address: z.string().min(1, 'Address is required'),
-  contactNumber: z.string().min(1, 'Contact number is required'),
+  contactNumber: z.string()
+    .min(1, 'Contact number is required')
+    .regex(/^[0-9]+$/, 'Contact number must contain numbers only'),
   totalRooms: z
     .number({ invalid_type_error: 'Must be a number' })
     .int('Must be a whole number')
@@ -36,7 +38,7 @@ export default function BusinessProfile() {
       ownerName: business?.ownerName ?? '',
       address: business?.address ?? '',
       contactNumber: business?.contactNumber ?? '',
-      totalRooms: business?.totalRooms ?? ('' as unknown as number),
+      totalRooms: business?.totalRooms ?? undefined,
     },
   });
 
@@ -47,7 +49,7 @@ export default function BusinessProfile() {
         ownerName: business.ownerName ?? '',
         address: business.address ?? '',
         contactNumber: business.contactNumber ?? '',
-        totalRooms: business.totalRooms ?? ('' as unknown as number),
+        totalRooms: business.totalRooms ?? undefined,
       });
     }
   }, [business, reset]);
@@ -141,9 +143,17 @@ export default function BusinessProfile() {
               Contact Number *
             </label>
             <input
-              type="text"
+              type="tel"
               {...register('contactNumber')}
+              pattern="[0-9]*"
+              inputMode="numeric"
+              placeholder="e.g. 09171234567"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
+              onKeyPress={(e) => {
+                if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                  e.preventDefault();
+                }
+              }}
             />
             {errors.contactNumber && (
               <p className="text-red-600 text-sm mt-1">{errors.contactNumber.message}</p>

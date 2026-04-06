@@ -30,6 +30,7 @@ CREATE TABLE businesses (
   permit_number VARCHAR(100) NOT NULL,
   address TEXT NOT NULL,
   contact_number VARCHAR(20) NOT NULL,
+  email VARCHAR(255) NOT NULL,
   owner_name VARCHAR(255) NOT NULL,
   permit_file_url VARCHAR(500),
   valid_id_url VARCHAR(500),
@@ -38,7 +39,8 @@ CREATE TABLE businesses (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_user_id (user_id),
-  INDEX idx_permit (permit_number)
+  INDEX idx_permit (permit_number),
+  INDEX idx_email (email)
 );
 
 -- Guest records (demographic data per check-in)

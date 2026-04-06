@@ -198,6 +198,7 @@ export default function BusinessReports() {
       ageData,
       transportationData,
       averageOccupancyRate,
+      avgRoomsOccupied: avgRoomsOnActiveDays,
     };
   };
 
@@ -230,6 +231,8 @@ export default function BusinessReports() {
     doc.text(`Total Guest Nights: ${data.totalGuestNights}`, 18, y);
     y += 6;
     doc.text(`Average Length of Stay: ${data.averageLengthOfStay.toFixed(1)} nights`, 18, y);
+    y += 6;
+    doc.text(`Average Rooms Occupied: ${data.avgRoomsOccupied.toFixed(1)}`, 18, y);
     y += 6;
     doc.text(`Average Occupancy Rate: ${data.averageOccupancyRate.toFixed(1)}%`, 18, y);
     y += 10;
@@ -341,6 +344,7 @@ export default function BusinessReports() {
     lines.push(`Summary,Total Guests Checked-in,${data.totalGuests}`);
     lines.push(`Summary,Total Guest Nights,${data.totalGuestNights}`);
     lines.push(`Summary,Average Length of Stay,${data.averageLengthOfStay.toFixed(1)}`);
+    lines.push(`Summary,Average Rooms Occupied,${data.avgRoomsOccupied.toFixed(1)}`);
     lines.push(`Summary,Average Occupancy Rate,${data.averageOccupancyRate.toFixed(1)}%`);
 
     data.genderData.forEach((g) => {
@@ -380,6 +384,7 @@ export default function BusinessReports() {
     rows.push(['Summary', 'Total Guests Checked-in', data.totalGuests]);
     rows.push(['Summary', 'Total Guest Nights', data.totalGuestNights]);
     rows.push(['Summary', 'Average Length of Stay', data.averageLengthOfStay]);
+    rows.push(['Summary', 'Average Rooms Occupied', data.avgRoomsOccupied]);
     rows.push(['Summary', 'Average Occupancy Rate', `${data.averageOccupancyRate}%`]);
 
     data.genderData.forEach((g) => rows.push(['Gender', g.name, g.value]));
@@ -607,6 +612,11 @@ export default function BusinessReports() {
                       <p>Total Guests Checked-in: {data.totalGuests}</p>
                       <p>Total Guest Nights: {data.totalGuestNights}</p>
                       <p>Average Length of Stay: {data.averageLengthOfStay.toFixed(1)} nights</p>
+                      <p>Average Rooms Occupied: {data.avgRoomsOccupied.toFixed(1)}
+                        {!(liveBusiness?.totalRooms ?? 0) && (
+                          <span className="ml-2 text-xs text-amber-600">(Set Total Rooms in Profile to calculate)</span>
+                        )}
+                      </p>
                       <p>Average Occupancy Rate: {data.averageOccupancyRate.toFixed(1)}%
                         {!(liveBusiness?.totalRooms ?? 0) && (
                           <span className="ml-2 text-xs text-amber-600">(Set Total Rooms in Profile to calculate)</span>

@@ -43,8 +43,10 @@ const seedUsers: User[] = [
       businessName: 'Palm Spring Resort & Hotel',
       permitNumber: 'BP-2024-001',
       address: 'Banaybanay, San Pablo City, Laguna',
-      contactNumber: '0917-123-4567',
+      contactNumber: '09171234567',
+      email: 'contact@palmspring.com',
       ownerName: 'Juan Dela Cruz',
+      totalRooms: 25,
     },
   },
   {
@@ -58,8 +60,10 @@ const seedUsers: User[] = [
       businessName: 'Seven Lakes Hotel',
       permitNumber: 'BP-2024-002',
       address: 'San Lorenzo, San Pablo City, Laguna',
-      contactNumber: '0918-234-5678',
+      contactNumber: '09182345678',
+      email: 'info@sevenlakes.com',
       ownerName: 'Maria Santos',
+      totalRooms: 30,
     },
   },
 ];
@@ -71,8 +75,10 @@ const seedBusinesses: Business[] = [
     businessName: 'Palm Spring Resort & Hotel',
     permitNumber: 'BP-2024-001',
     address: 'Banaybanay, San Pablo City, Laguna',
-    contactNumber: '0917-123-4567',
+    contactNumber: '09171234567',
+    email: 'contact@palmspring.com',
     ownerName: 'Juan Dela Cruz',
+    totalRooms: 25,
   },
   {
     id: 'biz-2',
@@ -80,8 +86,10 @@ const seedBusinesses: Business[] = [
     businessName: 'Seven Lakes Hotel',
     permitNumber: 'BP-2024-002',
     address: 'San Lorenzo, San Pablo City, Laguna',
-    contactNumber: '0918-234-5678',
+    contactNumber: '09182345678',
+    email: 'info@sevenlakes.com',
     ownerName: 'Maria Santos',
+    totalRooms: 30,
   },
 ];
 
@@ -96,7 +104,7 @@ const seedRegistrationRequests: RegistrationRequest[] = [
     businessName: 'Lakeview Inn',
     permitNumber: 'BP-2025-003',
     address: 'San Antonio, San Pablo City, Laguna',
-    contactNumber: '0919-345-6789',
+    contactNumber: '09193456789',
     ownerName: 'Pedro Reyes',
     email: 'lakeview@inn.com',
     status: 'pending',
@@ -104,8 +112,64 @@ const seedRegistrationRequests: RegistrationRequest[] = [
 ];
 
 const seedMessages: Message[] = [
-  { id: 'msg-1', senderId: 'user-1', receiverId: 'user-2', subject: 'Monthly Submission Reminder', message: 'Please submit your February 2025 guest data by March 5, 2025.', readStatus: false, createdAt: '2025-02-25T09:00:00Z' },
-  { id: 'msg-2', senderId: 'user-1', receiverId: 'user-2', subject: 'System Maintenance Notice', message: 'Scheduled maintenance on March 10, 2025 from 12AM-4AM. The system will be temporarily unavailable.', readStatus: true, createdAt: '2025-02-20T14:00:00Z' },
+  {
+    id: 'msg-1',
+    senderId: 'user-1',
+    receiverId: 'user-2',
+    subject: 'Notice of Non-Compliance: Monthly Tourist Arrival Report',
+    message:
+      'Republic of the Philippines\n' +
+      'City of San Pablo\n' +
+      'OFFICE OF THE CITY TOURISM\n\n' +
+      'February 25, 2025\n\n' +
+      'Juan Dela Cruz\n' +
+      'Palm Spring Resort & Hotel\n' +
+      'Banaybanay, San Pablo City, Laguna\n' +
+      'San Pablo City, Laguna\n\n' +
+      'Dear Juan Dela Cruz,\n\n' +
+      'SUBJECT: NOTICE OF NON-COMPLIANCE: MONTHLY TOURIST ARRIVAL REPORT\n\n' +
+      'This is to formally inform you that as of this writing, Palm Spring Resort & Hotel has not yet submitted the required Monthly Tourist Arrival Report to the San Pablo City Tourism Office.\n\n' +
+      'We wish to remind you that the submission of monthly tourist arrival data is a mandatory requirement pursuant to existing city ordinances governing tourism establishments. Failure to comply may result in administrative sanctions, including suspension of your tourism permit and blacklisting from the tourism registry.\n\n' +
+      'We strongly urge you to submit the required report at the earliest possible time. Should you require assistance, please do not hesitate to contact our office.\n\n' +
+      'We hope for your full cooperation on this matter.\n\n' +
+      'Respectfully yours,\n\n\n' +
+      '________________________________\n' +
+      'Tourism Officer\n' +
+      'San Pablo City Tourism Office\n' +
+      'tourism@sanpablocity.gov.ph',
+    readStatus: false,
+    messageType: 'compliance',
+    createdAt: '2025-02-25T09:00:00Z',
+  },
+  {
+    id: 'msg-2',
+    senderId: 'user-1',
+    receiverId: 'user-2',
+    subject: 'Official Announcement from the San Pablo City Tourism Office',
+    message:
+      'Republic of the Philippines\n' +
+      'City of San Pablo\n' +
+      'OFFICE OF THE CITY TOURISM\n\n' +
+      'February 20, 2025\n\n' +
+      'Juan Dela Cruz\n' +
+      'Palm Spring Resort & Hotel\n' +
+      'Banaybanay, San Pablo City, Laguna\n' +
+      'San Pablo City, Laguna\n\n' +
+      'Dear Juan Dela Cruz,\n\n' +
+      'SUBJECT: OFFICIAL ANNOUNCEMENT FROM THE SAN PABLO CITY TOURISM OFFICE\n\n' +
+      'This is to inform all registered tourism establishments of an important announcement from the San Pablo City Tourism Office.\n\n' +
+      'Scheduled maintenance will take place on March 10, 2025, from 12:00 AM to 4:00 AM. During this period, the system will be temporarily unavailable.\n\n' +
+      'For questions and clarifications, please contact the Tourism Office directly.\n\n' +
+      'We hope for your full cooperation on this matter.\n\n' +
+      'Respectfully yours,\n\n\n' +
+      '________________________________\n' +
+      'Tourism Officer\n' +
+      'San Pablo City Tourism Office\n' +
+      'tourism@sanpablocity.gov.ph',
+    readStatus: true,
+    messageType: 'announcement',
+    createdAt: '2025-02-20T14:00:00Z',
+  },
 ];
 
 function initSeed(): void {
@@ -195,6 +259,7 @@ export function updateRegistrationRequest(id: string, updates: Partial<Registrat
         permitNumber: r.permitNumber,
         address: r.address,
         contactNumber: r.contactNumber,
+        email: r.email,
         ownerName: r.ownerName,
       },
     };
@@ -205,6 +270,7 @@ export function updateRegistrationRequest(id: string, updates: Partial<Registrat
       permitNumber: r.permitNumber,
       address: r.address,
       contactNumber: r.contactNumber,
+      email: r.email,
       ownerName: r.ownerName,
     };
     save(STORAGE_KEYS.users, [...getUsers(), newUser]);

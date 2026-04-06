@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, Search, X, Eye } from 'lucide-react';
+import { Plus, Trash2, Search, X, Eye, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { nationalities, philippineRegions } from '../../data/dummyData';
@@ -136,21 +136,21 @@ function GuestEntryForm({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
-      <div className="bg-white w-full sm:max-w-2xl sm:rounded-xl rounded-t-2xl shadow-2xl max-h-[92dvh] flex flex-col">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
+      <div className="bg-white w-full sm:max-w-2xl rounded-xl shadow-2xl max-h-[calc(100vh-80px)] sm:h-auto sm:max-h-[90vh] flex flex-col mb-20 sm:mb-0">
         {/* Modal header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 shrink-0">
-          <h2 className="text-lg font-semibold text-gov-blue">New Guest Entry</h2>
+        <div className="flex justify-between items-center px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex-shrink-0 bg-white rounded-t-xl">
+          <h2 className="text-base sm:text-lg font-semibold text-gov-blue">New Guest Entry</h2>
           <button
             type="button"
             onClick={onCancel}
-            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg flex-shrink-0"
           >
             <X size={20} />
           </button>
         </div>
         {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1 px-6 py-5">
+        <div className="overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-5 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
           <form id="guest-entry-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-2 gap-4 items-start">
           <div>
@@ -281,16 +281,20 @@ function GuestEntryForm({
         </div>
           </form>
         </div>
-        {/* Sticky footer */}
-        <div className="px-6 py-4 border-t border-gray-200 shrink-0 flex gap-3">
+        {/* Sticky footer - always visible */}
+        <div className="px-4 sm:px-6 py-3 pb-5 sm:py-4 border-t border-gray-200 flex-shrink-0 flex flex-col sm:flex-row gap-2 sm:gap-3 bg-white rounded-b-xl">
           <button
             type="submit"
             form="guest-entry-form"
-            className="flex-1 py-3 bg-gov-blue text-white rounded-lg font-medium hover:bg-gov-blue/90 transition-colors"
+            className="w-full sm:flex-1 py-2.5 sm:py-3 bg-gov-blue text-white rounded-lg font-medium hover:bg-gov-blue/90 transition-colors text-sm sm:text-base order-1"
           >
             Save Guest Record
           </button>
-          <button type="button" onClick={onCancel} className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
+          <button 
+            type="button" 
+            onClick={onCancel} 
+            className="w-full sm:w-auto px-6 py-2.5 sm:py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm sm:text-base order-2"
+          >
             Cancel
           </button>
         </div>
@@ -306,6 +310,7 @@ export default function GuestDataEntry() {
 
   const [showForm, setShowForm] = useState(false);
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
@@ -391,76 +396,88 @@ export default function GuestDataEntry() {
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-gray-200 bg-gray-50">
-          <div className="flex items-center gap-2 mb-3">
-            <Search size={18} className="text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Filters</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Check-in From</label>
-              <input
-                type="date"
-                value={filters.dateFrom}
-                onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              />
+          <button
+            type="button"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center justify-between w-full lg:pointer-events-none"
+          >
+            <div className="flex items-center gap-2">
+              <Search size={18} className="text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Filters</span>
             </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Check-out To</label>
-              <input
-                type="date"
-                value={filters.dateTo}
-                onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Country</label>
-              <select
-                value={filters.nationality}
-                onChange={(e) => setFilters((f) => ({ ...f, nationality: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value="">All</option>
-                {nationalities.map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Purpose</label>
-              <select
-                value={filters.purpose}
-                onChange={(e) => setFilters((f) => ({ ...f, purpose: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value="">All</option>
-                {purposeOptions.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Transportation</label>
-              <select
-                value={filters.transport}
-                onChange={(e) => setFilters((f) => ({ ...f, transport: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value="">All</option>
-                {transportOptions.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100"
-              >
-                Reset
-              </button>
+            <ChevronDown 
+              size={20} 
+              className={`text-gray-500 transition-transform lg:hidden ${showFilters ? 'rotate-180' : ''}`}
+            />
+          </button>
+          <div className={`${showFilters ? 'block' : 'hidden'} lg:block`}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 mt-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Check-in From</label>
+                <input
+                  type="date"
+                  value={filters.dateFrom}
+                  onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Check-out To</label>
+                <input
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Country</label>
+                <select
+                  value={filters.nationality}
+                  onChange={(e) => setFilters((f) => ({ ...f, nationality: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="">All</option>
+                  {nationalities.map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Purpose</label>
+                <select
+                  value={filters.purpose}
+                  onChange={(e) => setFilters((f) => ({ ...f, purpose: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="">All</option>
+                  {purposeOptions.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Transportation</label>
+                <select
+                  value={filters.transport}
+                  onChange={(e) => setFilters((f) => ({ ...f, transport: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="">All</option>
+                  {transportOptions.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 w-full lg:w-auto"
+                >
+                  Reset
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -520,9 +537,9 @@ export default function GuestDataEntry() {
       </div>
 
       {selectedGroup && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between shrink-0">
               <div>
                 <h2 className="text-lg font-semibold text-gov-blue">Guest Entry Details</h2>
                 <p className="text-xs text-gray-500">
@@ -537,7 +554,7 @@ export default function GuestDataEntry() {
                 <X size={18} />
               </button>
             </div>
-            <div className="px-6 py-4 text-sm text-gray-700 space-y-4">
+            <div className="px-6 py-4 text-sm text-gray-700 space-y-4 overflow-y-auto flex-1">
               <div>
                 <p>
                   <span className="font-medium text-gov-blue">Mode of Transportation:</span>{' '}
@@ -605,16 +622,15 @@ export default function GuestDataEntry() {
                   </table>
                 </div>
               </div>
-
-              <div className="flex justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedGroupKey(null)}
-                  className="px-4 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Close
-                </button>
-              </div>
+            </div>
+            <div className="px-6 py-3 border-t border-gray-200 flex justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedGroupKey(null)}
+                className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

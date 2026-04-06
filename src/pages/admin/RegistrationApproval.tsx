@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useData } from '../../contexts/DataContext';
-import { Check, X, Ban, FileText, Search, Building2 } from 'lucide-react';
+import { Check, X, Ban, FileText, Search, Building2, Info, MapPin, Phone, Mail, User, Shield, ExternalLink } from 'lucide-react';
 import type { RegistrationRequest, Business } from '../../types';
 
 type TabStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'blacklisted';
@@ -14,6 +14,7 @@ export default function RegistrationApproval() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<TabStatus>('all');
   const [blacklistTargetId, setBlacklistTargetId] = useState<string | null>(null);
+  const [detailsEntry, setDetailsEntry] = useState<AccommodationEntry | null>(null);
 
   // Build unified list: registration requests + system businesses not covered by a request
   const requestPermits = new Set(registrationRequests.map((r) => r.permitNumber));
@@ -48,10 +49,25 @@ export default function RegistrationApproval() {
     return entry.data.address;
   }
   function getEmail(entry: AccommodationEntry): string | undefined {
-    return entry.type === 'request' ? (entry.data as RegistrationRequest).email : undefined;
+    if (entry.type === 'request') {
+      return (entry.data as RegistrationRequest).email;
+    }
+    return (entry.data as Business).email;
   }
   function getId(entry: AccommodationEntry): string {
     return entry.type === 'request' ? (entry.data as RegistrationRequest).id : (entry.data as Business).id;
+  }
+  function getPermitFileUrl(entry: AccommodationEntry): string | undefined {
+    return entry.data.permitFileUrl;
+  }
+  function getValidIdUrl(entry: AccommodationEntry): string | undefined {
+    return entry.data.validIdUrl;
+  }
+  function getTotalRooms(entry: AccommodationEntry): number | undefined {
+    return entry.type === 'system' ? (entry.data as Business).totalRooms : undefined;
+  }
+  function getRemarks(entry: AccommodationEntry): string | undefined {
+    return entry.type === 'request' ? (entry.data as RegistrationRequest).remarks : undefined;
   }
 
   const countFor = (tab: TabStatus) =>
@@ -204,6 +220,13 @@ export default function RegistrationApproval() {
                     <td className="px-4 py-3 whitespace-nowrap">{statusBadge(status)}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setDetailsEntry(entry)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-gov-blue text-white rounded-lg text-xs hover:bg-gov-blue/90"
+                        >
+                          <Info size={13} /> Details
+                        </button>
                         {isRequest && req!.status === 'pending' && (
                           <>
                             <button
@@ -219,12 +242,6 @@ export default function RegistrationApproval() {
                               className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-600 text-white rounded-lg text-xs hover:bg-red-700"
                             >
                               <X size={13} /> Reject
-                            </button>
-                            <button
-                              type="button"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 border border-gray-300 rounded-lg text-xs hover:bg-gray-50"
-                            >
-                              <FileText size={13} /> Docs
                             </button>
                           </>
                         )}
@@ -247,16 +264,9 @@ export default function RegistrationApproval() {
                           </button>
                         )}
                         {isRequest && req!.status === 'rejected' && (
-                          <button
-                            type="button"
-                            onClick={() => updateRegistrationRequest(req!.id, { status: 'approved' })}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700"
-                          >
-                            <Check size={13} /> Approve
-                          </button>
-                        )}
-                        {!isRequest && (
-                          <span className="text-xs text-gray-400 italic">System account</span>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-300 text-gray-500 rounded-lg text-xs cursor-not-allowed">
+                            <X size={13} /> Rejected (Final)
+                          </span>
                         )}
                       </div>
                     </td>
@@ -268,6 +278,185 @@ export default function RegistrationApproval() {
         )}
       </div>
 
+      {/* Details Modal */}
+      {detailsEntry && (() => {
+        const entry = detailsEntry;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
+            <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full my-8">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gov-blue/10 rounded-lg">
+                    <Building2 size={20} className="text-gov-blue" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-800">Accommodation Details</h2>
+                    <p className="text-xs text-gray-500">{getName(entry)}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDetailsEntry(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="px-6 py-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                {/* Status Badge */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Status:</span>
+                  {statusBadge(getStatus(entry))}
+                  {entry.type === 'system' && (
+                    <span className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-200">
+                      System Account
+                    </span>
+                  )}
+                </div>
+
+                {/* Business Information */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Building2 size={16} />
+                    Business Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 rounded-lg p-4">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Business Name</p>
+                      <p className="text-sm font-medium text-gray-900">{getName(entry)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Permit Number</p>
+                      <p className="text-sm font-medium text-gray-900 flex items-center gap-1">
+                        <Shield size={14} className="text-gov-blue" />
+                        {getPermit(entry)}
+                      </p>
+                    </div>
+                    {getTotalRooms(entry) && (
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Total Rooms</p>
+                        <p className="text-sm font-medium text-gray-900">{getTotalRooms(entry)}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Owner Information */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <User size={16} />
+                    Owner Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 rounded-lg p-4">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Owner Name</p>
+                      <p className="text-sm font-medium text-gray-900">{getOwner(entry)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Phone size={16} />
+                    Contact Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 rounded-lg p-4">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Contact Number</p>
+                      <p className="text-sm font-medium text-gray-900 flex items-center gap-1">
+                        <Phone size={14} className="text-primary-600" />
+                        {getContact(entry)}
+                      </p>
+                    </div>
+                    {getEmail(entry) && (
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Email Address</p>
+                        <p className="text-sm font-medium text-gray-900 flex items-center gap-1">
+                          <Mail size={14} className="text-primary-600" />
+                          {getEmail(entry)}
+                        </p>
+                      </div>
+                    )}
+                    <div className="md:col-span-2">
+                      <p className="text-xs text-gray-500 mb-1">Address</p>
+                      <p className="text-sm font-medium text-gray-900 flex items-start gap-1">
+                        <MapPin size={14} className="text-primary-600 mt-0.5 flex-shrink-0" />
+                        <span>{getAddress(entry)}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Remarks (if any) */}
+                {getRemarks(entry) && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Remarks</h3>
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <p className="text-sm text-amber-800">{getRemarks(entry)}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Business Documents */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <FileText size={16} />
+                    Business Documents
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <p className="text-xs text-gray-500 mb-2">Business Permit</p>
+                      {getPermitFileUrl(entry) ? (
+                        <a
+                          href={getPermitFileUrl(entry)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-sm text-gov-blue hover:text-gov-blue/80 font-medium"
+                        >
+                          <ExternalLink size={14} />
+                          View Permit Document
+                        </a>
+                      ) : (
+                        <p className="text-sm text-gray-400 italic">No document uploaded</p>
+                      )}
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <p className="text-xs text-gray-500 mb-2">Valid ID</p>
+                      {getValidIdUrl(entry) ? (
+                        <a
+                          href={getValidIdUrl(entry)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-sm text-gov-blue hover:text-gov-blue/80 font-medium"
+                        >
+                          <ExternalLink size={14} />
+                          View Valid ID
+                        </a>
+                      ) : (
+                        <p className="text-sm text-gray-400 italic">No document uploaded</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setDetailsEntry(null)}
+                  className="px-4 py-2 bg-gov-blue text-white rounded-lg text-sm hover:bg-gov-blue/90"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Blacklist Confirmation Modal */}
       {blacklistTargetId && (() => {
         const target = registrationRequests.find((r) => r.id === blacklistTargetId);
         return (
