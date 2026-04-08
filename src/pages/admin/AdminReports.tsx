@@ -376,7 +376,7 @@ export default function AdminReports() {
 
       // Combined occupancy: weighted average across rows that have totalRooms set
       const combinedOccupancy = (() => {
-        let weightedSum = 0; let totalCap = 0; let totalRoomDays = 0; let totalActiveDays = 0;
+        let weightedSum = 0; let totalCap = 0; let totalRoomDays = 0;
         exportRows.forEach((row) => {
           const rowBiz = businesses.find((b) => b.id === row.businessId);
           if (!rowBiz?.totalRooms) return;

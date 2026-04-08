@@ -13,7 +13,7 @@ export default function BusinessMessages() {
     .filter((m) => m.receiverId === userId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const getTypeBadge = (type: string) => {
+  const getTypeBadge = (type?: string) => {
     switch (type) {
       case 'compliance':
         return <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-medium">Compliance</span>;
